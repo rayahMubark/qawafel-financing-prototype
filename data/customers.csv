@@ -1,0 +1,37 @@
+customer_id,name_en,name_ar,vat_number,cr_number,segment,payment_terms_days,phone,address,registry_shareholders,registry_registered_on
+C001,Rawabi Hypermarkets Co.,شركة روابي للأسواق الكبرى,310000791900003,1010500337,key_account,60,+966 11 854 2824,"Al Malqa, Riyadh",Majed T. Al-Zahrani,2011-04-15
+C002,Sadeem Markets Co.,شركة أسواق سديم,310001583800003,1010500674,key_account,60,+966 11 342 2679,"Al Naseem, Riyadh",Omar H. Al-Ghamdi,2005-01-15
+C003,Bayt Al Khair Supermarkets,أسواق بيت الخير,310002375700003,1010501011,key_account,60,+966 11 295 4582,"Al Aziziyah, Riyadh",Abdullah K. Al-Harbi,2010-12-15
+C004,Lulu Al Wadi Markets,أسواق لؤلؤة الوادي,310003167600003,1010501348,key_account,45,+966 11 865 9928,"Al Olaya, Riyadh",Khalid I. Al-Shehri,2018-10-15
+C005,Wadi Retail Co.,شركة الوادي للتجزئة,310003959500003,1010501685,related,30,+966 11 555 0142,"Al Sulay Industrial Area, Street 14, Riyadh",Fahad S. Al-Mutlaq; Noura F. Al-Mutlaq,2025-06-02
+C006,Al Fursan Markets,أسواق الفرسان,310004751400003,1010502022,supermarket,30,+966 11 363 7924,"Al Shifa, Riyadh",Majed T. Al-Zahrani,2008-04-15
+C007,Nojoom Al Riyadh Supermarket,سوبرماركت نجوم الرياض,310005543300003,1010502359,supermarket,30,+966 11 294 7224,"Al Naseem, Riyadh",Turki F. Al-Subaie,2015-10-15
+C008,Al Badr Mini Market Chain,سلسلة أسواق البدر,310006335200003,1010502696,supermarket,30,+966 11 670 9785,"Al Naseem, Riyadh",Omar H. Al-Ghamdi,2006-09-15
+C009,Hayat Fresh Markets,أسواق حياة الطازجة,310007127100003,1010503033,supermarket,30,+966 11 833 6925,"Al Aziziyah, Riyadh",Saad M. Al-Otaibi,2005-11-15
+C010,Al Muntazah Markets,أسواق المنتزه,310007919000003,1010503370,supermarket,30,+966 11 281 4814,"Al Naseem, Riyadh",Omar H. Al-Ghamdi,2012-08-15
+C011,Qimmat Al Jawda Supermarket,سوبرماركت قمة الجودة,310008710900003,1010503707,supermarket,30,+966 11 366 7065,"Al Shifa, Riyadh",Khalid I. Al-Shehri,2012-12-15
+C012,Dar Al Tawfeer Markets,أسواق دار التوفير,310009502800003,1010504044,supermarket,30,+966 11 273 3803,"Al Aziziyah, Riyadh",Nasser A. Al-Dosari,2018-07-15
+C013,Al Waha Family Markets,أسواق الواحة العائلية,310010294700003,1010504381,supermarket,30,+966 11 770 4598,"Al Shifa, Riyadh",Abdullah K. Al-Harbi,2011-01-15
+C014,Rukn Al Bait Supermarket,سوبرماركت ركن البيت,310011086600003,1010504718,supermarket,30,+966 11 474 2084,"Al Aziziyah, Riyadh",Turki F. Al-Subaie,2010-11-15
+C015,Sahat Al Tasawuq Markets,أسواق ساحة التسوق,310011878500003,1010505055,supermarket,30,+966 11 858 8517,"Al Rawdah, Riyadh",Majed T. Al-Zahrani,2008-04-15
+C016,Najd Palace Hotel,فندق قصر نجد,310012670400003,1010505392,horeca,45,+966 11 774 9830,"Al Yasmin, Riyadh",Omar H. Al-Ghamdi,2016-06-15
+C017,Saffron House Restaurants,مطاعم بيت الزعفران,310013462300003,1010505729,horeca,45,+966 11 424 3266,"Dhahrat Laban, Riyadh",Saad M. Al-Otaibi,2005-02-15
+C018,Al Majd Catering Co.,شركة المجد للإعاشة,310014254200003,1010506066,horeca,45,+966 11 356 3621,"Al Olaya, Riyadh",Saad M. Al-Otaibi,2016-07-15
+C019,Tala Hospitality Group,مجموعة تالا للضيافة,310015046100003,1010506403,horeca,45,+966 11 810 8668,"Al Yasmin, Riyadh",Abdullah K. Al-Harbi,2007-11-15
+C020,Burj Al Diyafa Catering,برج الضيافة للتموين,310015838000003,1010506740,horeca,45,+966 11 749 5371,"Al Shifa, Riyadh",Saad M. Al-Otaibi,2013-07-15
+C021,Al Areen Restaurants,مطاعم العرين,310016629900003,1010507077,horeca,45,+966 11 361 8433,"Al Malqa, Riyadh",Majed T. Al-Zahrani,2009-09-15
+C022,Baqalat Al Hayy,بقالة الحي,,1010507414,grocery,0,+966 11 840 5889,"Al Aziziyah, Riyadh",Nasser A. Al-Dosari,2015-03-15
+C023,Baqalat Al Amanah,بقالة الأمانة,,1010507751,grocery,0,+966 11 743 1009,"Al Shifa, Riyadh",Yousef R. Al-Anazi,2004-02-15
+C024,Baqalat Nour Al Sabah,بقالة نور الصباح,,1010508088,grocery,0,+966 11 514 4923,"Al Malqa, Riyadh",Khalid I. Al-Shehri,2006-02-15
+C025,Baqalat Al Rayyan,بقالة الريان,,1010508425,grocery,0,+966 11 270 9727,"Al Rawdah, Riyadh",Nasser A. Al-Dosari,2019-09-15
+C026,Baqalat Al Salam,بقالة السلام,310020589400003,1010508762,grocery,0,+966 11 740 7932,"Al Aziziyah, Riyadh",Khalid I. Al-Shehri,2013-07-15
+C027,Baqalat Ibn Khaldun St.,بقالة شارع ابن خلدون,,1010509099,grocery,0,+966 11 865 7118,"Dhahrat Laban, Riyadh",Yousef R. Al-Anazi,2007-04-15
+C028,Baqalat Al Nakheel Al Saghira,بقالة النخيل الصغيرة,310022173200003,1010509436,grocery,0,+966 11 546 1344,"Al Aziziyah, Riyadh",Khalid I. Al-Shehri,2004-02-15
+C029,Baqalat Al Diyar,بقالة الديار,,1010509773,grocery,0,+966 11 260 4750,"Al Naseem, Riyadh",Abdullah K. Al-Harbi,2014-02-15
+C030,Baqalat Waha Al Shamal,بقالة واحة الشمال,,1010510110,grocery,15,+966 11 485 8953,"Al Aziziyah, Riyadh",Nasser A. Al-Dosari,2019-04-15
+C031,Baqalat Al Furqan,بقالة الفرقان,,1010510447,grocery,15,+966 11 616 4119,"Al Naseem, Riyadh",Saad M. Al-Otaibi,2017-06-15
+C032,Baqalat Al Rabwa,بقالة الربوة,310025340800003,1010510784,grocery,15,+966 11 678 1887,"Al Naseem, Riyadh",Abdullah K. Al-Harbi,2016-12-15
+C033,Baqalat Al Murjan,بقالة المرجان,310026132700003,1010511121,grocery,15,+966 11 311 5073,"Al Aziziyah, Riyadh",Khalid I. Al-Shehri,2018-03-15
+C034,Baqalat Al Yaqoot,بقالة الياقوت,310026924600003,1010511458,grocery,15,+966 11 485 8579,"Al Aziziyah, Riyadh",Saad M. Al-Otaibi,2018-09-15
+C035,Baqalat Al Rimal,بقالة الرمال,310027716500003,1010511795,grocery,15,+966 11 867 9856,"Al Malqa, Riyadh",Saad M. Al-Otaibi,2011-03-15
+C036,Gulf Pantry W.L.L.,جلف بانتري,310028508400003,1010512132,export,30,+966 11 616 8956,"Manama, Bahrain",Yousef R. Al-Anazi,2010-07-15

@@ -1,0 +1,183 @@
+erDiagram
+    ORGANIZATION ||--o{ BANK_ACCOUNT : owns
+    ORGANIZATION ||--o{ CUSTOMER : "sells to"
+    ORGANIZATION ||--o{ APPLICATION : submits
+    ORGANIZATION |o--o{ USER : employs
+    APPLICATION ||--o{ DOCUMENT : contains
+    BANK_ACCOUNT |o--o{ DOCUMENT : "statement of"
+    DOCUMENT ||--o{ INVOICE : "parsed into"
+    DOCUMENT ||--o{ BANK_TRANSACTION : "parsed into"
+    CUSTOMER ||--o{ INVOICE : "billed on"
+    BANK_ACCOUNT ||--o{ BANK_TRANSACTION : records
+    INVOICE ||--o{ MATCH_ALLOCATION : "paid by"
+    BANK_TRANSACTION ||--o{ MATCH_ALLOCATION : "pays"
+    APPLICATION ||--o{ REVIEW_ITEM : needs
+    APPLICATION ||--o{ FLAG : raises
+    APPLICATION ||--o{ INFO_REQUEST : has
+    APPLICATION ||--o{ PACKAGE : "versioned as"
+    PACKAGE ||--o| CONSENT : "approved by"
+    USER ||--o{ CONSENT : grants
+    PACKAGE ||--o| BANK_SUBMISSION : "sent as"
+    APPLICATION ||--o| BANK_DECISION : receives
+    USER ||--o{ AUDIT_LOG : performs
+
+    ORGANIZATION {
+        uuid id PK
+        string legal_name
+        string cr_number UK
+        string vat_number UK
+        json trade_names
+    }
+    USER {
+        uuid id PK
+        uuid org_id FK "null for ops and bank users"
+        string role "sme_owner | ops_analyst | bank_analyst"
+        string email UK
+    }
+    BANK_ACCOUNT {
+        uuid id PK
+        uuid org_id FK
+        string bank_name
+        string iban UK
+        string holder_name
+    }
+    CUSTOMER {
+        uuid id PK
+        uuid org_id FK
+        string name
+        string vat_number
+        string cr_number
+    }
+    APPLICATION {
+        uuid id PK
+        uuid org_id FK
+        string status "see state diagram"
+        date period_start
+        date period_end
+        decimal requested_amount_sar
+        timestamp created_at
+    }
+    DOCUMENT {
+        uuid id PK
+        uuid application_id FK
+        uuid bank_account_id FK "statements only"
+        string type "invoice_file | bank_statement"
+        string storage_url
+        string sha256 "detects re-uploads"
+        date covers_from
+        date covers_to
+        string parse_status "pending | parsed | failed"
+    }
+    INVOICE {
+        uuid id PK
+        uuid document_id FK
+        uuid customer_id FK
+        string invoice_number "not unique: duplicates are flagged"
+        string kind "invoice | credit_note"
+        date issue_date
+        date due_date
+        decimal amount_excl_vat_sar
+        decimal vat_amount_sar
+        string original_currency
+        decimal original_amount
+        decimal fx_rate "1 for SAR, 3.75 for USD"
+        string source_ref "sheet and row"
+        float confidence "0 to 1"
+    }
+    BANK_TRANSACTION {
+        uuid id PK
+        uuid document_id FK
+        uuid bank_account_id FK
+        date txn_date
+        string direction "credit | debit"
+        decimal amount_sar
+        decimal balance_after_sar
+        string counterparty_name
+        string description
+        string source_ref "page and line"
+        float confidence "0 to 1"
+    }
+    MATCH_ALLOCATION {
+        uuid id PK
+        uuid invoice_id FK
+        uuid transaction_id FK
+        decimal allocated_amount_sar
+        string method "auto_exact | auto_fuzzy | manual"
+        float confidence "0 to 1"
+    }
+    REVIEW_ITEM {
+        uuid id PK
+        uuid application_id FK
+        string entity_type "invoice | bank_transaction"
+        uuid entity_id
+        string field_name
+        string extracted_value
+        string corrected_value
+        float confidence
+        string status "open | confirmed | corrected"
+        uuid reviewed_by FK
+    }
+    FLAG {
+        uuid id PK
+        uuid application_id FK
+        string type "low_match_rate | duplicate | activity_gap | related_party | ..."
+        string severity "info | warning | critical"
+        string entity_type
+        uuid entity_id
+        string status "open | resolved"
+        string resolution_note "visible to bank"
+        uuid resolved_by FK
+    }
+    INFO_REQUEST {
+        uuid id PK
+        uuid application_id FK
+        uuid requested_by FK
+        string target "sme | ops"
+        string message
+        string status "open | answered"
+    }
+    PACKAGE {
+        uuid id PK
+        uuid application_id FK
+        int version
+        json metrics "revenue trend, match rate, concentration"
+        string summary_pdf_url
+        timestamp generated_at
+    }
+    CONSENT {
+        uuid id PK
+        uuid package_id FK
+        uuid user_id FK
+        string bank_name
+        json data_scope
+        timestamp granted_at
+        timestamp revoked_at
+    }
+    BANK_SUBMISSION {
+        uuid id PK
+        uuid package_id FK
+        string idempotency_key UK
+        string bank_reference
+        string status "sending | acknowledged | unconfirmed"
+        int attempts
+        timestamp sent_at
+        timestamp acknowledged_at
+    }
+    BANK_DECISION {
+        uuid id PK
+        uuid application_id FK
+        string decision "approved | declined | conditional"
+        decimal approved_amount_sar
+        string terms
+        timestamp decided_at
+    }
+    AUDIT_LOG {
+        uuid id PK
+        uuid actor_id FK
+        string action
+        string entity_type
+        uuid entity_id
+        json before_value
+        json after_value
+        timestamp created_at
+    }

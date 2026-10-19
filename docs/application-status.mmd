@@ -1,0 +1,13 @@
+stateDiagram-v2
+    [*] --> Draft
+    Draft --> Processing : files uploaded, 12 months covered
+    Processing --> ActionNeeded : missing or invalid files
+    ActionNeeded --> Processing : SME re-uploads
+    Processing --> UnderReview : low confidence or open flags
+    UnderReview --> ActionNeeded : ops requests documents
+    UnderReview --> AwaitingConsent : all items resolved
+    Processing --> AwaitingConsent : all checks pass
+    AwaitingConsent --> SentToBank : SME consents
+    SentToBank --> UnderReview : bank requests more info
+    SentToBank --> DecisionReceived : bank records decision
+    DecisionReceived --> [*]

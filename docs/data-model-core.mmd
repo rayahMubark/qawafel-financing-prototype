@@ -1,0 +1,71 @@
+erDiagram
+    ORGANIZATION ||--o{ BANK_ACCOUNT : owns
+    ORGANIZATION ||--o{ CUSTOMER : "sells to"
+    ORGANIZATION ||--o{ APPLICATION : submits
+    APPLICATION ||--o{ DOCUMENT : contains
+    BANK_ACCOUNT |o--o{ DOCUMENT : "statement of"
+    DOCUMENT ||--o{ INVOICE : "parsed into"
+    DOCUMENT ||--o{ BANK_TRANSACTION : "parsed into"
+    CUSTOMER ||--o{ INVOICE : "billed on"
+    BANK_ACCOUNT ||--o{ BANK_TRANSACTION : records
+    INVOICE ||--o{ MATCH_ALLOCATION : "paid by"
+    BANK_TRANSACTION ||--o{ MATCH_ALLOCATION : pays
+
+    ORGANIZATION {
+        uuid id PK
+        string legal_name
+        string cr_number UK
+        string vat_number UK
+    }
+    BANK_ACCOUNT {
+        uuid id PK
+        uuid org_id FK
+        string bank_name
+        string iban UK
+    }
+    CUSTOMER {
+        uuid id PK
+        uuid org_id FK
+        string name
+        string vat_number
+    }
+    APPLICATION {
+        uuid id PK
+        uuid org_id FK
+        string status
+        date period_start
+        date period_end
+    }
+    DOCUMENT {
+        uuid id PK
+        uuid application_id FK
+        uuid bank_account_id FK
+        string type
+        string sha256
+    }
+    INVOICE {
+        uuid id PK
+        uuid document_id FK
+        uuid customer_id FK
+        string invoice_number
+        date issue_date
+        decimal amount_sar
+        string original_currency
+        float confidence
+    }
+    BANK_TRANSACTION {
+        uuid id PK
+        uuid document_id FK
+        uuid bank_account_id FK
+        date txn_date
+        decimal amount_sar
+        string counterparty_name
+        float confidence
+    }
+    MATCH_ALLOCATION {
+        uuid id PK
+        uuid invoice_id FK
+        uuid transaction_id FK
+        decimal allocated_amount_sar
+        string method
+    }

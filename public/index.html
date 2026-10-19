@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Financing Package Review</title>
+  <meta name="description" content="Prototype: a verified 12-month financing package for a bank credit analyst, built from an SME wholesaler's invoices and bank statements.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <p class="brand">Qawafel <span>financing package</span></p>
+      <nav class="top-actions" aria-label="Data">
+        <button class="btn ghost" id="openUpload" type="button">Analyze your own files</button>
+        <a class="btn ghost" href="#data">Sample data</a>
+      </nav>
+    </div>
+  </header>
+
+  <div id="uploadBanner" class="banner" hidden>
+    <div class="wrap banner-inner">
+      <span>Showing the files you uploaded.</span>
+      <button class="link" id="backToSample" type="button">Back to the sample applicant</button>
+    </div>
+  </div>
+
+  <main id="main" class="wrap" aria-busy="true">
+    <p id="loading" class="loading">Reading invoices and bank statements…</p>
+    <p id="loadError" class="load-error" role="alert" hidden></p>
+
+    <section id="applicant" class="applicant" hidden>
+      <div>
+        <h1 id="appName"></h1>
+        <p id="appNameAr" class="ar" lang="ar" dir="rtl"></p>
+      </div>
+      <dl class="facts" id="appFacts"></dl>
+    </section>
+
+    <section id="hero" class="hero" hidden aria-labelledby="heroTitle">
+      <h2 id="heroTitle" class="hero-title"><span id="heroRate" class="hero-rate"></span> <span id="heroText"></span></h2>
+      <p id="heroSub" class="hero-sub"></p>
+      <div class="chart-head">
+        <ul class="legend" aria-label="Legend">
+          <li><i class="sw collected"></i>Confirmed by bank deposits</li>
+          <li><i class="sw pastdue"></i>Past due, not found in bank</li>
+          <li><i class="sw notdue"></i>Not yet due</li>
+        </ul>
+        <button class="link" id="toggleTable" type="button" aria-expanded="false">Show as table</button>
+      </div>
+      <figure class="ledger">
+        <div id="ledgerChart" class="ledger-chart" role="img"></div>
+        <figcaption class="sr-only">Monthly invoiced value split into confirmed, past due and not yet due.</figcaption>
+      </figure>
+      <div id="ledgerTable" class="table-wrap" hidden></div>
+    </section>
+
+    <div id="body" class="grid" hidden>
+      <section class="panel attention" aria-labelledby="attTitle">
+        <h2 id="attTitle">Needs attention</h2>
+        <p class="panel-note">Signals for the analyst to judge. Qawafel does not score or decide.</p>
+        <ol id="flags" class="flags"></ol>
+      </section>
+
+      <section class="panel figures" aria-labelledby="figTitle">
+        <h2 id="figTitle">Key figures</h2>
+        <dl id="figures" class="kv"></dl>
+      </section>
+
+      <section class="panel customers" aria-labelledby="custTitle">
+        <h2 id="custTitle">Who pays this business</h2>
+        <p class="panel-note" id="custNote"></p>
+        <div class="table-wrap"><table class="data" id="custTable"></table></div>
+      </section>
+
+      <section class="panel aging" aria-labelledby="agingTitle">
+        <h2 id="agingTitle">Unpaid invoices by age</h2>
+        <p class="panel-note">Outstanding at the end of the period, by days past the due date.</p>
+        <div id="agingBars" class="aging-bars"></div>
+      </section>
+
+      <section class="panel invoices" aria-labelledby="invTitle">
+        <h2 id="invTitle">Invoices and the payments behind them</h2>
+        <div class="filters" role="group" aria-label="Filter invoices">
+          <div class="seg" id="statusSeg"></div>
+          <label class="field"><span>Customer or invoice</span><input id="invSearch" type="search" placeholder="e.g. Al Majd or INV-26-0412"></label>
+          <label class="field small"><span>Min. SAR</span><input id="invMin" type="number" min="0" step="1000" placeholder="0"></label>
+        </div>
+        <div class="table-wrap"><table class="data" id="invTable"></table></div>
+        <div class="pager"><span id="invCount"></span><div><button class="btn ghost" id="prevPage" type="button">Previous</button><button class="btn ghost" id="nextPage" type="button">Next</button></div></div>
+      </section>
+
+      <section class="panel memo" aria-labelledby="memoTitle">
+        <div class="memo-head">
+          <h2 id="memoTitle">Briefing memo</h2>
+          <button class="btn primary" id="writeMemo" type="button">Write memo</button>
+        </div>
+        <p class="panel-note">Drafted by Claude from the verified figures above. It summarises evidence and questions; it does not recommend a decision.</p>
+        <div id="memoBody" class="memo-body" aria-live="polite"></div>
+      </section>
+
+      <section class="panel quality" id="data" aria-labelledby="qTitle">
+        <h2 id="qTitle">How this package was built</h2>
+        <dl id="quality" class="kv"></dl>
+        <h3>Sample data</h3>
+        <p class="panel-note">Fully synthetic. The applicant, customers and banks are fictional.</p>
+        <ul id="sampleFiles" class="files"></ul>
+      </section>
+    </div>
+
+    <p id="disclaimer" class="disclaimer" hidden></p>
+  </main>
+
+  <aside id="drawer" class="drawer" aria-hidden="true" aria-labelledby="drawerTitle" role="dialog" aria-modal="true">
+    <div class="drawer-panel">
+      <button class="drawer-close" id="closeDrawer" type="button" aria-label="Close">×</button>
+      <div id="drawerBody"></div>
+    </div>
+  </aside>
+
+  <dialog id="uploadDialog" class="upload">
+    <form id="uploadForm" method="dialog">
+      <h2>Analyze your own files</h2>
+      <p class="panel-note">Statements must use the sample banks' PDF layout (one parser per bank template). Download the sample files to see the expected format.</p>
+      <label class="field"><span>Invoices (.xlsx)</span><input type="file" name="invoices" accept=".xlsx" required></label>
+      <label class="field"><span>Bank statements (.pdf, up to 36)</span><input type="file" name="statements" accept=".pdf" multiple required></label>
+      <label class="field"><span>Customer master (.csv, optional)</span><input type="file" name="customers" accept=".csv"></label>
+      <label class="field"><span>Applicant profile (.json, optional)</span><input type="file" name="organization" accept=".json"></label>
+      <p id="uploadError" class="load-error" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button class="btn ghost" type="button" id="cancelUpload">Cancel</button>
+        <button class="btn primary" type="submit" id="submitUpload">Analyze files</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="tooltip" class="tooltip" role="status" hidden></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>

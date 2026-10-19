@@ -1,0 +1,45 @@
+flowchart TB
+    S1([SME: start application]) --> S2[SME: declare bank accounts and trade names]
+    S2 --> S3[SME: upload invoices Excel and statements PDF]
+    S3 --> P1{12 consecutive months covered?}
+    P1 -- No --> S4[SME: fix and re-upload]
+    S4 --> P1
+    P1 -- Yes --> P2[AI extracts invoices and transactions]
+    P2 --> P3{Any field below 0.90 confidence?}
+    P3 -- Yes --> O1[Ops: confirm or correct values]
+    O1 --> P4
+    P3 -- No --> P4[Normalize: dates, VAT, SAR conversion, credit notes]
+    P4 --> P5[Reconcile invoices to bank deposits]
+    P5 --> P6[Risk checks: duplicates, activity gaps, entity match, related parties]
+    P6 --> P7{Any open flags?}
+    P7 -- Yes --> O2{Ops: resolve or request documents?}
+    O2 -- Request documents --> S4
+    O2 -- Resolve with note --> P8
+    P7 -- No --> P8[Generate package and bank summary]
+    P8 --> S5[SME: review package and give consent]
+    S5 --> P9[Submit to bank with idempotency key]
+    P9 --> P10{Bank acknowledged within 15 min?}
+    P10 -- No --> O3[Ops: alert raised, check status with bank]
+    O3 -- Not received --> P9
+    O3 -- Received --> B1
+    P10 -- Yes --> B1[Bank: credit analyst reviews package]
+    B1 --> B2{Bank: decision}
+    B2 -- Need more info --> O2
+    B2 -- Approved, declined or conditional --> S6([SME: notified of decision])
+
+    classDef sme fill:#FDF2E9,stroke:#C0702A,color:#000
+    classDef plat fill:#EAF2FB,stroke:#2E6DB4,color:#000
+    classDef ops fill:#EEF7EE,stroke:#3C8D40,color:#000
+    classDef bank fill:#F3EEFA,stroke:#6B47A8,color:#000
+    class S1,S2,S3,S4,S5,S6 sme
+    class P1,P2,P3,P4,P5,P6,P7,P8,P9,P10 plat
+    class O1,O2,O3 ops
+    class B1,B2 bank
+
+    subgraph Legend
+        direction LR
+        L1[SME]:::sme
+        L2[Platform - automated]:::plat
+        L3[Qawafel Ops]:::ops
+        L4[Bank]:::bank
+    end

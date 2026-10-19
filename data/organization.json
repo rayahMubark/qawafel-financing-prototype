@@ -1,0 +1,38 @@
+{
+  "legal_name": "Nakheel Al-Wadi Trading Est.",
+  "legal_name_ar": "مؤسسة نخيل الوادي للتجارة",
+  "trade_names": [
+    "Nakheel Al-Wadi",
+    "NW Foods"
+  ],
+  "cr_number": "1010999001",
+  "vat_number": "399999000100003",
+  "city": "Riyadh",
+  "address": "Al Sulay Industrial Area, Street 14, Warehouse 7, Riyadh",
+  "phone": "+966 11 555 0142",
+  "owners": [
+    "Fahad S. Al-Mutlaq"
+  ],
+  "sector": "Food and FMCG wholesale",
+  "bank_accounts": [
+    {
+      "bank": "Rimal Bank",
+      "iban": "SA0399000000001234567001",
+      "holder": "NAKHEEL AL-WADI TRADING EST",
+      "code": "rimal",
+      "opening_balance_2025_10_01": 620000.0
+    },
+    {
+      "bank": "Najd Commercial Bank",
+      "iban": "SA7188000000009876543002",
+      "holder": "NAKHEEL AL-WADI TRADING EST",
+      "code": "najd",
+      "opening_balance_2025_10_01": 240000.0
+    }
+  ],
+  "sister_entity": {
+    "legal_name": "Nakheel Al-Wadi Logistics Co.",
+    "vat_number": "399999000200003"
+  },
+  "note": "Synthetic applicant. Not a real company."
+}
