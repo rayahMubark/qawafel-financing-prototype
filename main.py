@@ -86,8 +86,9 @@ def evidence(app_id: str, number: str):
 def memo(package: dict):
     """AI briefing memo from a package summary (works for the demo and for uploaded data)."""
     try:
+        lang = "ar" if package.pop("lang", "en") == "ar" else "en"
         ctx = build_context(package) if "metrics" in package and "monthly" in package else package
-        return generate_memo(ctx)
+        return generate_memo(ctx, lang)
     except KeyError as e:
         raise HTTPException(400, detail={"code": "INVALID_PACKAGE", "message": f"Missing field {e} in package."})
 

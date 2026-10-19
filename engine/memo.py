@@ -27,6 +27,15 @@ Rules:
   ## Questions for the applicant  (3-5 numbered questions)
 - Maximum 320 words."""
 
+ARABIC_INSTRUCTION = """
+
+Write the whole memo in Modern Standard Arabic. Use these Arabic headings instead, in this order:
+  ## لمحة عامة
+  ## ما تدعمه الأدلة
+  ## ما يحتاج إلى تحقق
+  ## أسئلة لمقدم الطلب
+Keep invoice numbers, IBAN digits and Latin company names as they appear. Write amounts as e.g. 1.22 مليون ريال."""
+
 _cache: dict[str, dict] = {}
 
 
@@ -42,7 +51,7 @@ def build_context(report: dict) -> dict:
             for c in report["customers"][:8]
         ],
         "receivables_aging": report["aging"],
-        "flags": [{k: f[k] for k in ("severity", "title", "detail")} for f in report["flags"]],
+        "flags": [{k: f[k] for k in ("severity", "title", "detail", "title_ar", "detail_ar") if k in f} for f in report["flags"]],
         "data_quality": {k: report["data_quality"][k] for k in (
             "rows_read", "duplicates_removed", "credit_notes", "fx_converted", "entity_mismatch",
             "statements", "statements_passing_balance_check")},
@@ -56,6 +65,39 @@ def _k(x: float) -> str:
 def _month(m: str | None) -> str:
     from datetime import date
     return date.fromisoformat(m + "-01").strftime("%b %Y") if m else "n/a"
+
+
+def _k_ar(x: float) -> str:
+    return f"{x / 1e6:.2f} مليون ريال" if abs(x) >= 1e6 else f"{x / 1e3:.0f} ألف ريال"
+
+
+def template_memo_ar(ctx: dict) -> str:
+    m = ctx["metrics"]
+    name = ctx["applicant"].get("legal_name_ar") or ctx["applicant"].get("legal_name") or "مقدم الطلب"
+    crit = [f for f in ctx["flags"] if f["severity"] in ("critical", "warning")]
+    lines = [
+        "## لمحة عامة",
+        f"سجّلت {name} صافي مبيعات قدره {_k_ar(m['total_revenue_net'])} خلال 12 شهرًا "
+        f"(بمتوسط {_k_ar(m['avg_monthly_revenue_net'])} شهريًا، الذروة {m['peak_month'] or 'غير متاح'}، الأدنى {m['low_month'] or 'غير متاح'}). "
+        f"{m['match_rate']:.1%} من قيمة الفواتير المستحقة التحصيل مؤكدة بإيداعات بنكية.",
+        "",
+        "## ما تدعمه الأدلة",
+        f"- التحصيل: {_k_ar(m['collectible_collected_gross'])} من أصل {_k_ar(m['collectible_invoiced_gross'])} من الفواتير المستحقة وُجدت في البنك.",
+        f"- متوسط مدة السداد: {m['avg_days_to_payment']} يومًا لدى {m['customers']} عميلًا.",
+        f"- متوسط الرصيد في نهاية الشهر {_k_ar(m['avg_month_end_balance'])}؛ الأدنى {_k_ar(m['min_month_end_balance'])}.",
+        f"- أقساط التمويل القائمة: {_k_ar(m['monthly_debt_service'])} شهريًا.",
+        "",
+        "## ما يحتاج إلى تحقق",
+        *[f"- **{f.get('title_ar') or f['title']}.** {f.get('detail_ar') or f['detail']}" for f in crit],
+        "",
+        "## أسئلة لمقدم الطلب",
+        *[f"{i}. {q}" for i, q in enumerate([
+            "ما طبيعة العلاقة التجارية مع أي عميل مُصنّف كطرف ذي علاقة محتمل؟",
+            "ما خطة تحصيل الذمم المتأخرة من العملاء الذين توقفوا عن السداد؟",
+            "هل جميع الحسابات البنكية التي تستقبل المبيعات مشمولة في هذا الطلب؟",
+        ], 1)],
+    ]
+    return "\n".join(lines)
 
 
 def template_memo(ctx: dict) -> str:
@@ -87,21 +129,22 @@ def template_memo(ctx: dict) -> str:
     return "\n".join(lines)
 
 
-def generate_memo(report_or_ctx: dict) -> dict:
+def generate_memo(report_or_ctx: dict, lang: str = "en") -> dict:
     ctx = report_or_ctx if "monthly_revenue_net" in report_or_ctx else build_context(report_or_ctx)
-    key = hashlib.sha256(json.dumps(ctx, sort_keys=True, default=str).encode()).hexdigest()
+    ar = lang == "ar"
+    key = hashlib.sha256((lang + json.dumps(ctx, sort_keys=True, default=str)).encode()).hexdigest()
     if key in _cache:
         return _cache[key]
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     model = os.environ.get("CLAUDE_MODEL", DEFAULT_MODEL)
-    result = {"source": "template", "model": None, "memo_markdown": template_memo(ctx), "note": None}
+    result = {"source": "template", "model": None, "memo_markdown": (template_memo_ar if ar else template_memo)(ctx), "note": None}
     if api_key:
         try:
             import anthropic
 
             client = anthropic.Anthropic(api_key=api_key, timeout=45)
             msg = client.messages.create(
-                model=model, max_tokens=900, system=SYSTEM_PROMPT,
+                model=model, max_tokens=1400 if ar else 900, system=SYSTEM_PROMPT + (ARABIC_INSTRUCTION if ar else ""),
                 messages=[{"role": "user", "content": "Package JSON:\n" + json.dumps(ctx, ensure_ascii=False, default=str)}],
             )
             text = "".join(b.text for b in msg.content if getattr(b, "type", "") == "text").strip()

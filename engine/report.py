@@ -18,6 +18,7 @@ from .matching import CustomerResolver, compact_en, reconcile
 
 DATA = Path(__file__).resolve().parent.parent / "data"
 DISCLAIMER = "Prepared by Qawafel from documents supplied by the applicant. Not a credit recommendation."
+DISCLAIMER_AR = "أعدّته قوافل من المستندات المقدمة من مقدم الطلب. ليست توصية ائتمانية."
 SEVERITY_ORDER = {"critical": 0, "warning": 1, "info": 2}
 LARGE_UNMATCHED_SAR = 10_000
 DEBT_RE = re.compile(r"FINANCE|INSTALLMENT|INSTALMENT|LOAN|MURABAHA", re.I)
@@ -31,12 +32,25 @@ def _month_list(end: date, n: int = 12) -> list[str]:
     return out[::-1]
 
 
-def _flag(ftype, severity, title, detail, evidence=None):
-    return {"type": ftype, "severity": severity, "title": title, "detail": detail, "evidence": evidence or []}
+def _flag(ftype, severity, title, detail, evidence=None, title_ar=None, detail_ar=None):
+    return {"type": ftype, "severity": severity, "title": title, "detail": detail, "evidence": evidence or [],
+            "title_ar": title_ar or title, "detail_ar": detail_ar or detail}
 
 
 def _sar(x: float) -> str:
     return f"SAR {x:,.0f}"
+
+
+def _sar_ar(x: float) -> str:
+    return f"{x:,.0f} ريال"
+
+
+def _count_ar(n: int, one: str, two: str, few: str, many: str) -> str:
+    """Arabic counted noun: 1 and 2 have their own forms, 3-10 take the plural, 11+ the singular."""
+    return one if n == 1 else two if n == 2 else f"{n} {few}" if 3 <= n % 100 <= 10 else f"{n} {many}"
+
+
+INVOICES_AR = ("فاتورة واحدة", "فاتورتان", "فواتير", "فاتورة")
 
 
 def build_report(invoice_file, statement_files=(), customers_file=None, org_file=None,
@@ -178,7 +192,8 @@ def build_report(invoice_file, statement_files=(), customers_file=None, org_file
 
     # ---- aging ----
     buckets = [("Not yet due", None, 0), ("1-30 days", 1, 30), ("31-60 days", 31, 60), ("61-90 days", 61, 90), ("90+ days", 91, 10**6)]
-    aging = [{"bucket": b[0], "amount": 0.0, "invoices": 0} for b in buckets]
+    buckets_ar = ["لم تستحق بعد", "1-30 يومًا", "31-60 يومًا", "61-90 يومًا", "أكثر من 90 يومًا"]
+    aging = [{"bucket": b[0], "bucket_ar": ar, "amount": 0.0, "invoices": 0} for b, ar in zip(buckets, buckets_ar)]
     for inv in sales:
         if inv["outstanding_sar"] <= 0:
             continue
@@ -190,32 +205,42 @@ def build_report(invoice_file, statement_files=(), customers_file=None, org_file
     # ---- flags ----
     flags = []
     if missing_inv or any(missing_stmt.values()):
-        detail = []
+        detail, detail_ar = [], []
         if missing_inv:
             detail.append(f"no invoices for {', '.join(missing_inv)}")
+            detail_ar.append(f"لا توجد فواتير للأشهر {'، '.join(missing_inv)}")
         for iban, ms in missing_stmt.items():
             if ms:
                 detail.append(f"no statement for {', '.join(ms)} on account ending {iban[-4:]}")
-        flags.append(_flag("coverage", "critical", "12-month coverage incomplete", "; ".join(detail).capitalize() + "."))
+                detail_ar.append(f"لا يوجد كشف للأشهر {'، '.join(ms)} للحساب المنتهي بـ {iban[-4:]}")
+        flags.append(_flag("coverage", "critical", "12-month coverage incomplete", "; ".join(detail).capitalize() + ".",
+                           title_ar="تغطية الأشهر الاثني عشر غير مكتملة", detail_ar="؛ ".join(detail_ar) + "."))
     bad_stmts = [s for s in statements if s["checks"]["rows_failing_balance"] or not s["checks"]["closing_balance_matches"]]
     if bad_stmts:
         flags.append(_flag("statement_balance", "critical", "Statement arithmetic does not close",
                            f"{len(bad_stmts)} statement(s) fail the running-balance check, which can indicate an edited PDF or an extraction error.",
-                           [s["file"] for s in bad_stmts]))
+                           [s["file"] for s in bad_stmts], title_ar="حسابات الكشف لا تتطابق",
+                           detail_ar=f"{len(bad_stmts)} كشف/كشوف لا تجتاز فحص الرصيد الجاري، وقد يدل ذلك على ملف PDF معدّل أو خطأ في الاستخراج."))
 
     if match_rate < 0.70:
         flags.append(_flag("low_match_rate", "critical", "Low share of revenue confirmed by bank",
-                           f"Only {match_rate:.1%} of collectible invoiced value is confirmed by deposits."))
+                           f"Only {match_rate:.1%} of collectible invoiced value is confirmed by deposits.",
+                           title_ar="نسبة منخفضة من الإيرادات مؤكدة من البنك",
+                           detail_ar=f"{match_rate:.1%} فقط من قيمة الفواتير المستحقة التحصيل مؤكدة بإيداعات بنكية."))
     elif match_rate < 0.85:
         flags.append(_flag("low_match_rate", "warning", "Part of revenue not confirmed by bank",
-                           f"{match_rate:.1%} of collectible invoiced value is confirmed by deposits."))
+                           f"{match_rate:.1%} of collectible invoiced value is confirmed by deposits.",
+                           title_ar="جزء من الإيرادات غير مؤكد من البنك",
+                           detail_ar=f"{match_rate:.1%} من قيمة الفواتير المستحقة التحصيل مؤكدة بإيداعات بنكية."))
 
     large = sorted([i for i in sales if i["collectible"] and i["status"] in ("unmatched", "partial")
                     and i["outstanding_sar"] >= LARGE_UNMATCHED_SAR], key=lambda i: -i["outstanding_sar"])
     if large:
         flags.append(_flag("unmatched_large", "warning", f"{len(large)} past-due invoice{'s' if len(large) != 1 else ''} over SAR 10,000 not collected",
                            f"{_sar(sum(i['outstanding_sar'] for i in large))} invoiced but not found in the bank statements.",
-                           [i["number"] for i in large]))
+                           [i["number"] for i in large],
+                           title_ar=f"فواتير متأخرة تزيد عن 10,000 ريال لم تُحصَّل ({len(large)})",
+                           detail_ar=f"{_sar_ar(sum(i['outstanding_sar'] for i in large))} مفوترة ولم يُعثر عليها في كشوف الحساب البنكية."))
 
     # customers who stopped paying
     for row in cust_list:
@@ -225,27 +250,33 @@ def build_report(invoice_file, statement_files=(), customers_file=None, org_file
             unpaid = [i["number"] for i in sales if i["customer_id"] == row["customer_id"] and i["collectible"] and i["status"] != "matched"]
             flags.append(_flag("stopped_paying", "warning", f"{row['name_en']} has stopped paying",
                                f"No payment since {row['last_payment']}; {_sar(row['outstanding_past_due'])} past due across {len(unpaid)} invoices.",
-                               unpaid))
+                               unpaid, title_ar=f"توقف عن السداد: {row.get('name_ar') or row['name_en']}",
+                               detail_ar=f"لا توجد دفعات منذ {row['last_payment']}؛ {_sar_ar(row['outstanding_past_due'])} متأخرة السداد على {_count_ar(len(unpaid), *INVOICES_AR)}."))
 
     if top5 > 0.40 or top1 > 0.20:
         flags.append(_flag("concentration", "warning", "Revenue concentrated in a few customers",
                            f"Top customer {top1:.1%} and top 5 customers {top5:.1%} of revenue (HHI {hhi}).",
-                           [r["customer_id"] for r in cust_list[:5]]))
+                           [r["customer_id"] for r in cust_list[:5]], title_ar="الإيرادات مركّزة في عدد قليل من العملاء",
+                           detail_ar=f"أكبر عميل {top1:.1%} وأكبر 5 عملاء {top5:.1%} من الإيرادات (مؤشر HHI {hhi})."))
 
     # related parties: registry overlap with the applicant, then money flowing back
     owner_surnames = {o.split()[-1].lower() for o in org.get("owners", [])}
     for row in cust_list:
         c = resolver.customers.get(row["customer_id"], {})
-        reasons = []
+        reasons, reasons_ar = [], []
         if org.get("phone") and c.get("phone") == org["phone"]:
             reasons.append("same phone number as the applicant")
+            reasons_ar.append("رقم الهاتف نفسه لمقدم الطلب")
         if any(s and s in (c.get("registry_shareholders") or "").lower() for s in owner_surnames):
             reasons.append("shareholders share the owner's family name")
+            reasons_ar.append("المساهمون يحملون اسم عائلة المالك")
         if org.get("address") and c.get("address") and c["address"][:25] == org["address"][:25]:
             reasons.append("same address as the applicant")
+            reasons_ar.append("العنوان نفسه لمقدم الطلب")
         reg = c.get("registry_registered_on")
         if reg and (period_end - date.fromisoformat(reg)).days < 540:
             reasons.append(f"registered recently ({reg})")
+            reasons_ar.append(f"مسجّل حديثًا ({reg})")
         if len(reasons) >= 2:
             received = [t for t in customer_credits if t.get("customer_id") == row["customer_id"]]
             target = compact_en(row["name_en"])
@@ -255,30 +286,40 @@ def build_report(invoice_file, statement_files=(), customers_file=None, org_file
             row["signals"].append("related_party")
             ratio = f" {returned / got:.0%} of the money received from them was transferred back to them within days." if got and returned else ""
             ratio += f" Revenue excluding this customer: {_sar((total_rev - row['revenue_net']) / 12)} per month."
+            ratio_ar = f" أُعيد تحويل {returned / got:.0%} من الأموال المستلمة منه إليه خلال أيام." if got and returned else ""
+            ratio_ar += f" الإيرادات باستثناء هذا العميل: {_sar_ar((total_rev - row['revenue_net']) / 12)} شهريًا."
             flags.append(_flag("related_party", "critical" if returned else "warning",
                                f"Possible related party: {row['name_en']}",
                                f"{row['share']:.1%} of revenue. Signals: {'; '.join(reasons)}.{ratio}",
                                [{"date": t["date"], "description": t["description"], "reference": t["reference"],
                                  "amount": t["debit"], "source_file": t["source_file"], "source_page": t["source_page"]}
-                                for t in back][:40]))
+                                for t in back][:40],
+                               title_ar=f"طرف ذو علاقة محتمل: {row.get('name_ar') or row['name_en']}",
+                               detail_ar=f"{row['share']:.1%} من الإيرادات. المؤشرات: {'؛ '.join(reasons_ar)}.{ratio_ar}"))
 
     if inv_stats["duplicates_removed"]:
         flags.append(_flag("duplicates", "info", f"{inv_stats['duplicates_removed']} duplicate invoice rows removed",
                            "Identical rows (same number, customer and amount) were counted once.",
-                           [x["invoice"] for x in issues if x["type"] == "duplicate"]))
+                           [x["invoice"] for x in issues if x["type"] == "duplicate"],
+                           title_ar=f"حذف صفوف فواتير مكررة ({inv_stats['duplicates_removed']})",
+                           detail_ar="الصفوف المتطابقة (الرقم والعميل والمبلغ نفسها) احتُسبت مرة واحدة."))
     em = [i for i in invoices if "entity_mismatch" in i["flags"]]
     if em:
         flags.append(_flag("entity_mismatch", "warning", f"{len(em)} invoices issued by another entity",
                            f"Seller VAT number differs from the applicant's. {_sar(sum(i['net_sar'] for i in em))} excluded from revenue.",
-                           [i["number"] for i in em]))
+                           [i["number"] for i in em], title_ar=f"فواتير صادرة من منشأة أخرى ({len(em)})",
+                           detail_ar=f"الرقم الضريبي للبائع يختلف عن رقم مقدم الطلب. استُبعد {_sar_ar(sum(i['net_sar'] for i in em))} من الإيرادات."))
     fx = [i for i in own if "fx_converted" in i["flags"]]
     if fx:
         flags.append(_flag("fx_converted", "info", f"{len(fx)} foreign-currency invoices converted",
-                           "USD converted at the fixed 3.75 peg; original amounts kept.", [i["number"] for i in fx]))
+                           "USD converted at the fixed 3.75 peg; original amounts kept.", [i["number"] for i in fx],
+                           title_ar=f"تحويل فواتير بعملة أجنبية ({len(fx)})",
+                           detail_ar="حُوّل الدولار بسعر الربط الثابت 3.75؛ مع الاحتفاظ بالمبالغ الأصلية."))
     if total_credits and unidentified_sar / total_credits > 0.02:
         flags.append(_flag("unidentified_inflows", "info", "Deposits from unidentified payers",
                            f"{_sar(unidentified_sar)} ({unidentified_sar / total_credits:.1%} of inflows) could not be linked to a known customer.",
-                           [t["reference"] for t in unidentified][:20]))
+                           [t["reference"] for t in unidentified][:20], title_ar="إيداعات من دافعين غير معروفين",
+                           detail_ar=f"{_sar_ar(unidentified_sar)} ({unidentified_sar / total_credits:.1%} من التدفقات الواردة) تعذّر ربطها بعميل معروف."))
 
     # activity gaps: 30+ days without any customer receipts
     days = sorted({t["date"] for t in txns if t["credit"] > 0})
@@ -286,13 +327,19 @@ def build_report(invoice_file, statement_files=(), customers_file=None, org_file
         gap = (date.fromisoformat(b) - date.fromisoformat(a)).days
         if gap >= 30:
             flags.append(_flag("activity_gap", "warning", "Gap in business activity",
-                               f"No incoming payments between {a} and {b} ({gap} days)."))
+                               f"No incoming payments between {a} and {b} ({gap} days).",
+                               title_ar="انقطاع في النشاط التجاري",
+                               detail_ar=f"لا توجد دفعات واردة بين {a} و{b} ({gap} يومًا)."))
     if len(rev) == 12 and mean(rev[:10]) and mean(rev[-2:]) > 1.3 * mean(rev[:10]):
         flags.append(_flag("late_spike", "warning", "Revenue spike just before applying",
-                           f"Last 2 months average {_sar(mean(rev[-2:]))}, {mean(rev[-2:]) / mean(rev[:10]) - 1:.0%} above the prior 10 months."))
+                           f"Last 2 months average {_sar(mean(rev[-2:]))}, {mean(rev[-2:]) / mean(rev[:10]) - 1:.0%} above the prior 10 months.",
+                           title_ar="ارتفاع مفاجئ في الإيرادات قبل التقديم مباشرة",
+                           detail_ar=f"متوسط آخر شهرين {_sar_ar(mean(rev[-2:]))}، أعلى بنسبة {mean(rev[-2:]) / mean(rev[:10]) - 1:.0%} من الأشهر العشرة السابقة."))
     if debt_service:
         flags.append(_flag("existing_debt", "info", "Existing financing obligations",
-                           f"Recurring finance installments of about {_sar(mean(debt_service.values()))} per month."))
+                           f"Recurring finance installments of about {_sar(mean(debt_service.values()))} per month.",
+                           title_ar="التزامات تمويلية قائمة",
+                           detail_ar=f"أقساط تمويل متكررة بنحو {_sar_ar(mean(debt_service.values()))} شهريًا."))
     flags.sort(key=lambda f: SEVERITY_ORDER[f["severity"]])
 
     # ---- human review queue: uncertain name matches ----
@@ -368,6 +415,7 @@ def build_report(invoice_file, statement_files=(), customers_file=None, org_file
         "credits": credits_out,
         "allocations": allocations,
         "disclaimer": DISCLAIMER,
+        "disclaimer_ar": DISCLAIMER_AR,
         "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
     }
 
