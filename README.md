@@ -2,7 +2,7 @@
 
 Turns a wholesaler's 12 months of invoices (Excel) and bank statements (PDF) into a verified package a bank credit analyst can act on in minutes.
 
-**Live:** `<your Vercel URL>`
+**Live:** https://qawafel-financing-prototype.vercel.app
 
 ## What it does
 
