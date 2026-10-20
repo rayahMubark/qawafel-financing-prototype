@@ -126,11 +126,12 @@ def sample_data():
 
 
 @app.get("/api/sample-data/{path:path}")
-def sample_file(path: str):
+def sample_file(path: str, inline: bool = False):
+    """Download a sample file; ?inline=1 lets the browser open it (PDFs open at #page=N)."""
     target = (DATA / path).resolve()
     if not target.is_file() or not target.is_relative_to(DATA.resolve()):
         raise HTTPException(404, detail={"code": "FILE_NOT_FOUND", "message": f"No sample file '{path}'."})
-    return FileResponse(target, filename=target.name)
+    return FileResponse(target, filename=target.name, content_disposition_type="inline" if inline else "attachment")
 
 
 # Local development only: Vercel serves public/ from its CDN and must not see a mount of it.

@@ -66,6 +66,15 @@ def test_api_package_and_drilldown():
     assert ev["allocations"] and ev["allocations"][0]["transaction"]["source_file"].endswith(".pdf")
 
 
+def test_sample_pdf_opens_inline():
+    url = "/api/sample-data/statements/najd_2025-11.pdf"
+    r = client.get(url, params={"inline": 1})
+    assert r.status_code == 200 and r.headers["content-type"] == "application/pdf"
+    assert r.headers["content-disposition"].startswith("inline")
+    assert client.get(url).headers["content-disposition"].startswith("attachment")
+    assert client.get("/api/sample-data/..%2Fmain.py", params={"inline": 1}).status_code == 404
+
+
 def test_api_errors_use_one_format():
     r = client.get("/api/applications/nope/package")
     assert r.status_code == 404 and r.json()["error"]["code"] == "APPLICATION_NOT_FOUND"

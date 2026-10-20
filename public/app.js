@@ -6,7 +6,7 @@ const TABS = ["overview", "revenue", "customers", "invoices", "memo", "built"];
 const state = {
   lang: "ar", tab: "overview", report: null, source: "sample", files: null,
   status: "all", search: "", min: 0, page: 0, evidence: null, showAllCustomers: false,
-  allocByInv: new Map(), creditByRef: new Map(), memo: null,
+  allocByInv: new Map(), creditByRef: new Map(), memo: null, uploads: null,
 };
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -54,7 +54,14 @@ const NOUNS_EN = {
 const I18N = {
   en: {
     "doc.title": "Financing package review",
-    skip: "Skip to content", "brand.sub": "Financing package", "nav.upload": "Analyze your own files",
+    skip: "Skip to content", "brand.sub": "Financing package", "nav.upload": "Analyze your files",
+    "short.overview": "Overview", "short.revenue": "Revenue", "short.customers": "Customers", "short.invoices": "Invoices", "short.memo": "Memo", "short.more": "More",
+    "g.meterAria": (p) => `${p} confirmed by bank deposits`,
+    "g.sparkAria": (a, b, peak, low) => `Net sales by month, ${a} to ${b}. Peak ${peak}, low ${low}.`,
+    "src.page": (n) => `page ${n}`, "src.openPdf": (f, n) => `Open ${f} at page ${n} (opens in a new tab)`,
+    "src.copy": (r) => `Copy reference ${r}`, "src.copyShort": "Copy reference", "src.copied": "Reference copied",
+    "src.xls": (n) => `Download Excel (row ${n})`, "src.hidden": "Columns E to H, J and K are not shown.",
+    "q.reviewTitle": "Payments sent to human review", "q.reviewItem": (c, conf) => `Suggested customer: ${c} (name match ${conf})`,
     "lang.group": "Language", "banner.text": "Showing the files you uploaded.", "banner.back": "Back to the sample applicant",
     "glance.title": "At a glance", "tabs.label": "Sections",
     "tab.overview": "Overview", "tab.revenue": "Revenue verification", "tab.customers": "Customers", "tab.invoices": "Invoices", "tab.memo": "Briefing memo", "tab.built": "How it was built",
@@ -134,6 +141,13 @@ const I18N = {
   ar: {
     "doc.title": "مراجعة ملف التمويل",
     skip: "انتقل إلى المحتوى", "brand.sub": "ملف التمويل", "nav.upload": "حلّل ملفاتك",
+    "short.overview": "نظرة عامة", "short.revenue": "الإيرادات", "short.customers": "العملاء", "short.invoices": "الفواتير", "short.memo": "المذكرة", "short.more": "المزيد",
+    "g.meterAria": (p) => `${p} مؤكدة بإيداعات بنكية`,
+    "g.sparkAria": (a, b, peak, low) => `صافي المبيعات شهريًا من ${a} إلى ${b}. الذروة ${peak}، الأدنى ${low}.`,
+    "src.page": (n) => `صفحة ${n}`, "src.openPdf": (f, n) => `افتح ${f} على الصفحة ${n} (في علامة تبويب جديدة)`,
+    "src.copy": (r) => `انسخ المرجع ${r}`, "src.copyShort": "انسخ المرجع", "src.copied": "نُسخ المرجع",
+    "src.xls": (n) => `نزّل ملف Excel (الصف ${n})`, "src.hidden": "الأعمدة من ⁦E⁩ إلى ⁦H⁩ و⁦J⁩ و⁦K⁩ غير معروضة.",
+    "q.reviewTitle": "دفعات أُحيلت للمراجعة البشرية", "q.reviewItem": (c, conf) => `العميل المقترح: ${c} (تطابق الاسم ${conf})`,
     "lang.group": "اللغة", "banner.text": "تُعرض الملفات التي رفعتها.", "banner.back": "العودة إلى مقدم الطلب النموذجي",
     "glance.title": "نظرة سريعة", "tabs.label": "الأقسام",
     "tab.overview": "نظرة عامة", "tab.revenue": "التحقق من الإيرادات", "tab.customers": "العملاء", "tab.invoices": "الفواتير", "tab.memo": "مذكرة الإحاطة", "tab.built": "كيف أُعدّ الملف",
@@ -331,6 +345,7 @@ function errorText(e) {
 
 async function loadSample() {
   $("loadError").hidden = true;
+  revokeUploads(); // back to the sample: the uploaded files' object URLs are no longer needed
   try {
     setReport(await getJSON(`${API}/applications/demo/report`), "sample");
   } catch (e) {
@@ -388,28 +403,49 @@ function showTab(name, { focus = false, push = true } = {}) {
     tab.tabIndex = on ? 0 : -1;
     panel.hidden = !on;
   }
-  $(`tab-${name}`).scrollIntoView({ block: "nearest", inline: "nearest" });
+  if (name === "overview" && state.report) drawLedger(state.report.monthly); // width may have changed while hidden
+  // phone bottom nav mirrors the sidebar; "How it was built" lives under More
+  document.querySelectorAll(".bottom-nav [data-tab]").forEach((b) => b.toggleAttribute("aria-current", false));
+  document.querySelector(`.bottom-nav > [data-tab="${name}"]`)?.setAttribute("aria-current", "page");
+  if (name === "built") $("moreBtn").setAttribute("aria-current", "page"); else $("moreBtn").removeAttribute("aria-current");
+  closeMore();
   if (focus) $(`tab-${name}`).focus();
   if (push) { try { history.replaceState(null, "", `#${name}`); } catch { /* sandboxed */ } }
 }
 function wireTabs() {
-  $("tabs").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); });
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest(".nav [data-tab], .bottom-nav [data-tab], .more-menu [data-tab]");
+    if (b) goToTab(b.dataset.tab);
+  });
+  // vertical tablist: Up/Down move between sections
   $("tabs").addEventListener("keydown", (e) => {
     const i = TABS.indexOf(state.tab);
-    const fwd = ar() ? "ArrowLeft" : "ArrowRight", back = ar() ? "ArrowRight" : "ArrowLeft";
     let n = null;
-    if (e.key === fwd) n = TABS[(i + 1) % TABS.length];
-    else if (e.key === back) n = TABS[(i - 1 + TABS.length) % TABS.length];
+    if (e.key === "ArrowDown") n = TABS[(i + 1) % TABS.length];
+    else if (e.key === "ArrowUp") n = TABS[(i - 1 + TABS.length) % TABS.length];
     else if (e.key === "Home") n = TABS[0];
     else if (e.key === "End") n = TABS.at(-1);
     if (n) { e.preventDefault(); showTab(n, { focus: true }); }
   });
+  $("moreBtn").onclick = (e) => {
+    e.stopPropagation();
+    const open = $("moreMenu").hidden;
+    $("moreMenu").hidden = !open;
+    $("moreBtn").setAttribute("aria-expanded", String(open));
+    if (open) $("moreMenu").querySelector("button").focus();
+  };
+  $("moreUpload").onclick = () => { closeMore(); openUpload(); };
+  document.addEventListener("click", (e) => { if (!e.target.closest(".more-menu, #moreBtn")) closeMore(); });
+}
+function closeMore() {
+  if ($("moreMenu").hidden) return;
+  $("moreMenu").hidden = true;
+  $("moreBtn").setAttribute("aria-expanded", "false");
 }
 const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 function goToTab(name) {
   showTab(name);
-  const bar = document.querySelector(".tabs-bar");
-  const top = bar.getBoundingClientRect().top + window.scrollY;
+  const top = Math.max(0, $("main").getBoundingClientRect().top + window.scrollY - 12);
   if (window.scrollY > top) window.scrollTo({ top, behavior: reduceMotion() ? "auto" : "smooth" });
 }
 
@@ -484,18 +520,31 @@ function renderGlance(r) {
   $("glance").innerHTML = `
     <article class="gcard glass ${tone}">
       ${q(t("g.real"), ic)}
-      <div class="gmid"><div class="gbig">${pct(m.match_rate)}</div><p class="gtext">${esc(t("g.realText"))}</p></div>
+      <div class="gmid"><div class="gbig">${pct(m.match_rate)}</div>
+        <div class="meter" role="img" aria-label="${esc(t("g.meterAria", pct(m.match_rate)))}"><i style="width:${Math.min(100, m.match_rate * 100)}%"></i></div>
+        <p class="gtext">${esc(t("g.realText"))}</p></div>
       ${realNote}
     </article>
     <article class="gcard glass neutral">
       ${q(t("g.stable"), "chart-line")}
-      <div class="gmid"><div class="gbig">${esc(moneyShort(m.avg_monthly_revenue_net))}</div><p class="gtext">${esc(t("g.stableText"))}</p></div>
+      <div class="gmid"><div class="gbig">${esc(moneyShort(m.avg_monthly_revenue_net))}</div>${sparkline(r.monthly, m)}<p class="gtext">${esc(t("g.stableText"))}</p></div>
       <div class="gnote chips"><span class="pill info">${icon("wave-sine")}${esc(t("g.vary", pct(m.revenue_volatility_cv, 0)))}</span><span class="pill info">${icon("arrow-up")}${esc(t("g.peak", monthShort(m.peak_month)))}</span><span class="pill info">${icon("arrow-down")}${esc(t("g.low", monthShort(m.low_month)))}</span></div>
     </article>
     <article class="gcard glass ${attTone}">
       ${q(t("g.attention"), attIcon)}
       ${attention}
     </article>`;
+}
+
+// 12 months of net sales; time runs left to right in both languages, like the main chart.
+function sparkline(monthly, m) {
+  const v = monthly.map((d) => d.revenue_net || 0);
+  if (v.length < 2) return "";
+  const W = 240, H = 40, lo = Math.min(...v), hi = Math.max(...v), span = hi - lo || 1;
+  const pts = v.map((x, i) => `${((i / (v.length - 1)) * W).toFixed(1)},${(H - 3 - ((x - lo) / span) * (H - 6)).toFixed(1)}`);
+  const label = t("g.sparkAria", monthShort(monthly[0].month), monthShort(monthly.at(-1).month), monthShort(m.peak_month), monthShort(m.low_month));
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${esc(label)}" dir="ltr">
+    <polygon class="area" points="0,${H} ${pts.join(" ")} ${W},${H}"/><polyline points="${pts.join(" ")}"/></svg>`;
 }
 
 function focusFlag(i) {
@@ -511,7 +560,10 @@ function focusFlag(i) {
 
 // ---------- chart ----------
 function drawLedger(monthly) {
-  const W = 1100, H = 300, padL = 56, padR = 8, padT = 12, padB = 30;
+  // draw at the container's real width so axis text stays 12px
+  const W = Math.max(560, Math.round($("ledgerChart").parentElement.clientWidth) || 1100), H = 300, padL = 56, padR = 8, padT = 12;
+  const twoLine = (W - padL - padR) / monthly.length < 72; // narrow: month over year so labels never collide
+  const padB = twoLine ? 44 : 30;
   const max = Math.max(...monthly.map((d) => d.invoiced_gross || 0)) || 1;
   const step = max > 1.5e6 ? 500000 : 250000;
   const top = Math.ceil(max / step) * step;
@@ -525,7 +577,12 @@ function drawLedger(monthly) {
   for (let v = 0; v <= top; v += step) {
     svg += `<text x="${padL - 8}" y="${y(v) + 4}" text-anchor="end">${v === 0 ? "0" : (v / 1e6).toFixed(2).replace(/\.?0+$/, "") + unit}</text>`;
   }
-  monthly.forEach((d, i) => { svg += `<text x="${padL + colW * i + colW / 2}" y="${H - 8}" text-anchor="middle">${esc(monthShort(d.month))}</text>`; });
+  monthly.forEach((d, i) => {
+    const x = padL + colW * i + colW / 2;
+    svg += twoLine
+      ? `<text x="${x}" y="${H - 24}" text-anchor="middle">${esc(asDate(d.month).toLocaleDateString(locale(), { month: "short" }))}<tspan x="${x}" dy="15">${esc(d.month.slice(2, 4))}</tspan></text>`
+      : `<text x="${x}" y="${H - 8}" text-anchor="middle">${esc(monthShort(d.month))}</text>`;
+  });
   svg += `</g>`;
   const segs = [["collected", "var(--c-confirmed)"], ["open_past_due", "var(--c-pastdue)"], ["not_yet_due", "var(--c-notdue)"]];
   monthly.forEach((d, i) => {
@@ -755,11 +812,10 @@ function openInvoice(no) {
     return `<div class="pay">
       <div class="pay-top"><span class="pay-amt">${esc(money2(a.amount_sar))}</span><span>${esc(dateLabel(a.date))}</span></div>
       <div class="pay-desc">${esc(tx.description || a.bank_ref)}</div>
+      <div class="pay-src">${tx.source_file ? pdfLink(tx.source_file, tx.source_page) : ""}${refCopy(a.bank_ref)}</div>
       <div class="pay-meta">
         <span>${icon("link-simple")}${esc(t("d.method", t(`m.${a.method}`), pct(a.confidence, 0)))}</span>
         <span>${icon("bank")}${esc(t("d.account", tx.bank || "", (tx.iban || "").slice(-4)))}</span>
-        <span>${icon("hash")}${esc(t("d.ref"))} ${ltr(a.bank_ref)}</span>
-        <span>${icon("file-pdf")}${ltr(tx.source_file || "")}${esc(t("d.page"))} ${tx.source_page ?? ""}</span>
       </div>
       ${shared ? `<p class="note">${esc(t("d.shared", money2(tx.credit)))}</p>` : ""}
     </div>`;
@@ -775,7 +831,7 @@ function openInvoice(no) {
       </dl>
     </section>
     <section class="trail-step"><span class="trail-dot">${icon("table")}</span><h3>${esc(t("d.step2"))}</h3>
-      <div class="source-box">${esc(t("d.source", i.source_ref))}${i.customer_name_on_invoice && i.customer_name_on_invoice !== i.customer ? `<br><span class="note">${esc(t("d.onInvoice"))}: ${esc(i.customer_name_on_invoice)}</span>` : ""}</div>
+      ${sourceRow(i)}
     </section>
     <section class="trail-step"><span class="trail-dot">${icon("bank")}</span><h3>${esc(t("d.step3"))}</h3>
       <div class="paid-sum"><div class="row"><span>${esc(t("d.paid"))}</span><strong>${esc(t("d.of", money2(paid), money2(i.expected_sar)))}</strong></div>
@@ -794,10 +850,85 @@ function openTransfers(flag) {
   const rows = flag.evidence.map((x) => `<div class="pay">
       <div class="pay-top"><span class="pay-amt">${esc(money2(x.amount))}</span><span>${esc(dateLabel(x.date))}</span></div>
       <div class="pay-desc">${esc(x.description)}</div>
-      <div class="pay-meta"><span>${icon("hash")}${esc(t("d.ref"))} ${ltr(x.reference)}</span><span>${icon("file-pdf")}${ltr(x.source_file)}${esc(t("d.page"))} ${x.source_page}</span></div>
+      <div class="pay-src">${pdfLink(x.source_file, x.source_page)}${refCopy(x.reference)}</div>
     </div>`).join("");
   openDrawer(head, `<div class="flag ${sev.cls}"><p>${esc(detail)}</p></div>
-    <h3 style="color:var(--royal);font-size:1rem">${esc(t("d.transfersTitle"))}: ${esc(count(flag.evidence.length, "transfer"))}${ar() ? "، " : ", "}${esc(money(total))}</h3>${rows}`);
+    <h3>${esc(t("d.transfersTitle"))}: ${esc(count(flag.evidence.length, "transfer"))}${ar() ? "، " : ", "}${esc(money(total))}</h3>${rows}`);
+}
+
+// ---------- sources: every figure is one click from its document ----------
+const SAMPLE_INVOICES = "invoices_2025-10_to_2026-09.xlsx";
+// Uploaded files never leave the browser's memory: object URLs stand in for server paths.
+function setUploads(fd) {
+  revokeUploads();
+  const inv = fd.get("invoices");
+  state.uploads = {
+    invoices: { name: inv.name, url: URL.createObjectURL(inv) },
+    statements: new Map(fd.getAll("statements").map((f) => [f.name, URL.createObjectURL(f)])),
+  };
+}
+function revokeUploads() {
+  if (!state.uploads) return;
+  URL.revokeObjectURL(state.uploads.invoices.url);
+  state.uploads.statements.forEach((u) => URL.revokeObjectURL(u));
+  state.uploads = null;
+}
+function pdfHref(file, page) {
+  const base = state.source === "upload"
+    ? state.uploads?.statements.get(file)
+    : `${API}/sample-data/statements/${encodeURIComponent(file)}?inline=1`;
+  return base ? `${base}#page=${page || 1}` : null;
+}
+function pdfLink(file, page) {
+  const label = `${ltr(file)} <small>${esc(t("src.page", page || 1))}</small>`;
+  const href = pdfHref(file, page);
+  if (!href) return `<span class="src">${icon("file-pdf")}<span>${label}</span></span>`;
+  return `<a class="src" href="${esc(href)}" target="_blank" rel="noopener" aria-label="${esc(t("src.openPdf", file, page || 1))}">${icon("file-pdf")}<span>${label}</span></a>`;
+}
+function refCopy(ref) {
+  return `<span class="ref">${esc(t("d.ref"))} ${ltr(ref)}<button type="button" class="copy" data-copy="${esc(ref)}" aria-label="${esc(t("src.copy", ref))}" title="${esc(t("src.copyShort"))}">${icon("copy")}</button></span>`;
+}
+async function copyRef(btn) {
+  const text = btn.dataset.copy;
+  try { await navigator.clipboard.writeText(text); } catch {
+    const ta = Object.assign(document.createElement("textarea"), { value: text });
+    document.body.append(ta); ta.select();
+    try { document.execCommand("copy"); } catch { /* nothing else to try */ }
+    ta.remove();
+  }
+  btn.classList.add("done"); btn.innerHTML = icon("check");
+  $("liveMsg").textContent = t("src.copied");
+  setTimeout(() => { btn.classList.remove("done"); btn.innerHTML = icon("copy"); $("liveMsg").textContent = ""; }, 1600);
+}
+// Browsers can't show .xlsx, so the drawer redraws the source row as the spreadsheet shows it.
+function sourceRow(i) {
+  const m = /^(.*)!row (\d+)$/.exec(i.source_ref || "");
+  if (!m) return `<p class="note">${esc(i.source_ref || "")}</p>`;
+  const [, sheet, row] = m;
+  const dmy = (s) => (s ? s.split("-").reverse().join("/") : "");
+  const cols = [
+    ["A", "Invoice No", i.number], ["B", "Invoice Date", dmy(i.issue_date)], ["C", "Due Date", dmy(i.due_date)],
+    ["D", "Customer Name", i.customer_name_on_invoice || i.customer], ["I", "Currency", i.original_currency], ["L", "Total", nf2.format(i.original_total), true],
+  ];
+  const up = state.source === "upload" ? state.uploads?.invoices : null;
+  const href = up ? up.url : `${API}/sample-data/${SAMPLE_INVOICES}`;
+  const fileName = up ? up.name : SAMPLE_INVOICES;
+  const td = (v, num) => `<td${num ? ' class="num"' : ""}>${esc(v)}</td>`;
+  return `<div class="sheet">
+    <div class="sheet-scroll" dir="ltr"><table class="xl" lang="en">
+      <thead><tr><th class="g"></th>${cols.map(([c]) => `<th>${c}</th>`).join("")}</tr></thead>
+      <tbody>
+        <tr class="hdr"><th class="g" scope="row"></th>${cols.map(([, h]) => `<td>${esc(h)}</td>`).join("")}</tr>
+        <tr class="gap"><th class="g">⋮</th><td colspan="${cols.length}"></td></tr>
+        <tr class="hit"><th class="g" scope="row">${row}</th>${cols.map(([, , v, num]) => td(v, num)).join("")}</tr>
+      </tbody>
+    </table></div>
+    <div class="sheet-foot">
+      <span class="sheet-tab">${icon("table")}<bdi dir="ltr">${esc(sheet)}</bdi></span>
+      <a class="src" href="${esc(href)}" download="${esc(fileName)}">${icon("file-xls")}<span>${esc(t("src.xls", row))}</span></a>
+    </div>
+  </div>
+  <p class="sheet-note">${esc(t("src.hidden"))}</p>`;
 }
 
 // ---------- memo ----------
@@ -857,6 +988,16 @@ async function renderBuilt(r) {
     [!r.review_queue.length, t("q.review"), t("q.reviewSub"), nf0.format(r.review_queue.length)],
   ];
   $("checks").innerHTML = checks.map(([ok, label, sub, v]) => `<li class="check ${ok ? "ok" : "attn"}">${icon(ok ? "check-circle" : "warning")}<div><b>${esc(label)}</b><small>${esc(sub)}</small></div><span class="v">${esc(v)}</span></li>`).join("");
+  // uncertain payer names, each with the statement page it came from
+  $("review").innerHTML = r.review_queue.length ? `<h3>${esc(t("q.reviewTitle"))}</h3>` + r.review_queue.map((x) => {
+    const tx = state.creditByRef.get(x.bank_ref) || {};
+    return `<div class="pay">
+      <div class="pay-top"><span class="pay-amt">${esc(money2(x.amount))}</span><span>${esc(dateLabel(x.date))}</span></div>
+      <div class="pay-desc">${esc(x.description)}</div>
+      <div class="pay-src">${tx.source_file ? pdfLink(tx.source_file, tx.source_page) : ""}${refCopy(x.bank_ref)}</div>
+      <div class="pay-meta"><span>${icon("user-focus")}${esc(t("q.reviewItem", x.suggested_customer || "-", pct(x.name_confidence || 0, 0)))}</span></div>
+    </div>`;
+  }).join("") : "";
 
   const byMethod = {};
   for (const a of r.allocations) byMethod[a.method] = (byMethod[a.method] || 0) + a.amount_sar;
@@ -898,6 +1039,8 @@ function showTip(ev, html) {
 }
 function hideTip() { $("tooltip").hidden = true; }
 
+function openUpload() { $("uploadError").hidden = true; $("uploadDialog").showModal(); }
+
 function fileName(input) {
   const out = input.closest(".file").querySelector(".file-name");
   const files = [...input.files];
@@ -922,6 +1065,8 @@ function wire() {
     if (fb) return runFlagAction(+fb.dataset.flag, fb.dataset.kind);
     const tr = e.target.closest("#invTable tr.clickable");
     if (tr) return openInvoice(tr.dataset.no);
+    const cp = e.target.closest("button.copy");
+    if (cp) return copyRef(cp);
     const tipb = e.target.closest(".tipbtn");
     document.querySelectorAll(".tipwrap.open").forEach((w) => { if (!tipb || w !== tipb.parentElement) w.classList.remove("open"); });
     if (tipb) tipb.parentElement.classList.toggle("open");
@@ -946,11 +1091,14 @@ function wire() {
   $("closeDrawer").onclick = closeDrawer;
   $("drawer").onclick = (e) => { if (e.target === $("drawer")) closeDrawer(); };
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") { closeDrawer(); document.querySelectorAll(".tipwrap.open").forEach((w) => w.classList.remove("open")); }
+    if (e.key === "Escape") {
+      if (!$("moreMenu").hidden) { closeMore(); $("moreBtn").focus(); }
+      closeDrawer(); document.querySelectorAll(".tipwrap.open").forEach((w) => w.classList.remove("open"));
+    }
     trapFocus(e);
   });
   $("writeMemo").onclick = writeMemo;
-  $("openUpload").onclick = () => { $("uploadError").hidden = true; $("uploadDialog").showModal(); };
+  $("openUpload").onclick = openUpload;
   $("cancelUpload").onclick = () => $("uploadDialog").close();
   $("backToSample").onclick = loadSample;
   $("uploadForm").onsubmit = async (e) => {
@@ -961,7 +1109,9 @@ function wire() {
     try {
       const fd = new FormData(e.target);
       for (const k of ["customers", "organization"]) if (!fd.get(k)?.size) fd.delete(k);
-      setReport(await getJSON(`${API}/analyze`, { method: "POST", body: fd }), "upload");
+      const report = await getJSON(`${API}/analyze`, { method: "POST", body: fd });
+      setUploads(fd);
+      setReport(report, "upload");
       $("uploadDialog").close();
       window.scrollTo({ top: 0 });
     } catch (err) {
@@ -971,6 +1121,8 @@ function wire() {
       btn.disabled = false; btn.textContent = t("up.submit");
     }
   };
+  let rz;
+  addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => state.report && !$("p-overview").hidden && drawLedger(state.report.monthly), 150); });
   addEventListener("hashchange", () => showTab(location.hash.slice(1), { push: false }));
 }
 
