@@ -104,7 +104,7 @@ const I18N = {
     "memo.write": "Write memo", "memo.rewrite": "Rewrite memo", "memo.writing": "Writing…", "memo.empty": "No memo yet. Write one from the verified figures in this package.",
     "memo.wait": "Drafting from the verified figures. This can take up to 30 seconds.",
     "memo.claude": (m) => `Written by Claude (${m}) from the verified package. Check figures against the other tabs before relying on it.`,
-    "memo.template": "Template memo. No AI key is set on this server.", "memo.fallback": "AI memo unavailable right now. Showing the template memo.",
+    "memo.template": "Template memo. No AI key is set on this server.", "memo.templatePlain": "Template memo, built from the verified figures.", "memo.fallback": "AI memo unavailable right now. Showing the template memo.",
     "memo.error": "The memo could not be written.",
     disclaimer: "Prepared by Qawafel from documents supplied by the applicant. Not a credit recommendation.",
     "q.title": "Data checks", "q.note": "What was read, what was cleaned, and what was checked before any figure was shown.",
@@ -182,7 +182,7 @@ const I18N = {
     "memo.write": "اكتب المذكرة", "memo.rewrite": "أعد كتابة المذكرة", "memo.writing": "جارٍ الكتابة…", "memo.empty": "لا توجد مذكرة بعد. اكتب واحدة من الأرقام الموثّقة في هذا الملف.",
     "memo.wait": "تجري الصياغة من الأرقام الموثّقة. قد يستغرق ذلك حتى 30 ثانية.",
     "memo.claude": (m) => `كتبها Claude (${m}) من الملف الموثّق. تحقّق من الأرقام في الأقسام الأخرى قبل الاعتماد عليها.`,
-    "memo.template": "مذكرة قالب. لا يوجد مفتاح ذكاء اصطناعي على هذا الخادم.", "memo.fallback": "المذكرة الذكية غير متاحة حاليًا. تُعرض مذكرة القالب.",
+    "memo.template": "مذكرة قالب. لا يوجد مفتاح ذكاء اصطناعي على هذا الخادم.", "memo.templatePlain": "مذكرة قالب مبنية من الأرقام الموثّقة.", "memo.fallback": "المذكرة الذكية غير متاحة حاليًا. تُعرض مذكرة القالب.",
     "memo.error": "تعذّرت كتابة المذكرة.",
     disclaimer: "أعدّته قوافل من المستندات المقدمة من مقدم الطلب. ليست توصية ائتمانية.",
     "q.title": "فحوص البيانات", "q.note": "ما الذي قُرئ، وما الذي نُظّف، وما الذي فُحص قبل عرض أي رقم.",
@@ -817,7 +817,7 @@ function renderMemo() {
   $("writeMemoLabel").textContent = state.memo ? t("memo.rewrite") : t("memo.write");
   if (!state.memo) { $("memoBody").innerHTML = `<div class="memo-empty">${icon("note-pencil")}<span>${esc(t("memo.empty"))}</span></div>`; return; }
   const memo = state.memo;
-  const src = memo.source === "claude" ? t("memo.claude", memo.model) : /ANTHROPIC_API_KEY/.test(memo.note || "") ? t("memo.template") : memo.note ? t("memo.fallback") : t("memo.template");
+  const src = memo.source === "claude" ? t("memo.claude", memo.model) : /ANTHROPIC_API_KEY/.test(memo.note || "") ? t("memo.template") : memo.note ? t("memo.fallback") : t("memo.templatePlain");
   $("memoBody").innerHTML = renderMarkdown(ar() ? isoNumbers(memo.memo_markdown.replace(/ريال/g, "ر.س")) : memo.memo_markdown) + `<p class="memo-source">${esc(src)}</p>`;
 }
 async function writeMemo() {
