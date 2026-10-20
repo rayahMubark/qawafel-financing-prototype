@@ -1,140 +1,233 @@
 <!doctype html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Financing Package Review</title>
+  <title>مراجعة ملف التمويل</title>
   <meta name="description" content="Prototype: a verified 12-month financing package for a bank credit analyst, built from an SME wholesaler's invoices and bank statements.">
+  <meta name="theme-color" content="#162660">
+  <script>
+    // Set language before first paint (Arabic by default).
+    try { if (localStorage.getItem("lang") === "en") { document.documentElement.lang = "en"; document.documentElement.dir = "ltr"; } } catch (e) {}
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
   <link rel="stylesheet" href="/styles.css">
-  <script>try { if (localStorage.getItem("lang") === "ar") { document.documentElement.lang = "ar"; document.documentElement.dir = "rtl"; } } catch (e) {}</script>
 </head>
 <body>
   <a class="skip" href="#main" data-i18n="skip">Skip to content</a>
-  <header class="topbar">
-    <div class="wrap topbar-inner">
-      <p class="brand"><span class="brand-name" data-i18n="brand.name">Qawafel</span> <span class="brand-sub" data-i18n="brand.sub">financing package</span></p>
-      <nav class="top-actions" aria-label="Data" data-i18n-aria="nav.data">
-        <button class="btn ghost" id="openUpload" type="button" data-i18n="nav.upload">Analyze your own files</button>
-        <a class="btn ghost" href="#data" data-i18n="nav.sample">Sample data</a>
-        <button class="btn lang" id="langToggle" type="button" lang="ar" aria-label="التبديل إلى العربية">عربي</button>
-      </nav>
+
+  <header class="appbar">
+    <div class="wrap appbar-inner">
+      <p class="wordmark"><span lang="ar">قوافل</span> <small data-i18n="brand.sub">financing package</small></p>
+      <div class="appbar-actions">
+        <button class="btn" id="openUpload" type="button" data-i18n-aria="nav.upload"><i class="ph ph-upload-simple" aria-hidden="true"></i><span class="upload-label" data-i18n="nav.upload">Analyze your own files</span></button>
+        <div class="lang-switch" role="group" data-i18n-aria="lang.group">
+          <button type="button" data-lang="ar" lang="ar">عربي</button>
+          <button type="button" data-lang="en" lang="en">EN</button>
+        </div>
+      </div>
     </div>
   </header>
 
   <div id="uploadBanner" class="banner" hidden>
     <div class="wrap banner-inner">
+      <i class="ph ph-files" aria-hidden="true"></i>
       <span data-i18n="banner.text">Showing the files you uploaded.</span>
       <button class="link" id="backToSample" type="button" data-i18n="banner.back">Back to the sample applicant</button>
     </div>
   </div>
 
-  <main id="main" class="wrap" aria-busy="true">
-    <p id="loading" class="loading" data-i18n="loading">Reading invoices and bank statements…</p>
-    <p id="loadError" class="load-error" role="alert" hidden></p>
-
-    <section id="applicant" class="applicant" hidden>
+  <section class="applicant" aria-labelledby="appName">
+    <div class="wrap applicant-inner" id="applicantInner">
       <div>
-        <h1 id="appName"></h1>
-        <p id="appNameAr" class="ar alt-name" lang="ar" dir="rtl"></p>
+        <h1 id="appName"><span class="skeleton" style="display:inline-block;width:320px;max-width:80%;height:1.2em"></span></h1>
+        <p id="appNameAlt" class="alt-name"></p>
       </div>
       <dl class="facts" id="appFacts"></dl>
-    </section>
-
-    <section id="hero" class="hero" hidden aria-labelledby="heroTitle">
-      <h2 id="heroTitle" class="hero-title"><span id="heroRate" class="hero-rate"></span> <span id="heroText"></span></h2>
-      <p id="heroSub" class="hero-sub"></p>
-      <div class="chart-head">
-        <ul class="legend" aria-label="Legend" data-i18n-aria="legend">
-          <li><i class="sw collected"></i><span data-i18n="legend.collected">Confirmed by bank deposits</span></li>
-          <li><i class="sw pastdue"></i><span data-i18n="legend.pastdue">Past due, not found in bank</span></li>
-          <li><i class="sw notdue"></i><span data-i18n="legend.notdue">Not yet due</span></li>
-        </ul>
-        <button class="link" id="toggleTable" type="button" aria-expanded="false">Show as table</button>
-      </div>
-      <figure class="ledger">
-        <div id="ledgerChart" class="ledger-chart" role="img"></div>
-        <figcaption class="sr-only" data-i18n="chart.caption">Monthly invoiced value split into confirmed, past due and not yet due.</figcaption>
-      </figure>
-      <div id="ledgerTable" class="table-wrap" hidden></div>
-    </section>
-
-    <div id="body" class="grid" hidden>
-      <section class="panel attention" aria-labelledby="attTitle">
-        <h2 id="attTitle" data-i18n="att.title">Needs attention</h2>
-        <p class="panel-note" data-i18n="att.note">Signals for the analyst to judge. Qawafel does not score or decide.</p>
-        <ol id="flags" class="flags"></ol>
-      </section>
-
-      <section class="panel figures" aria-labelledby="figTitle">
-        <h2 id="figTitle" data-i18n="fig.title">Key figures</h2>
-        <dl id="figures" class="kv"></dl>
-      </section>
-
-      <section class="panel customers" aria-labelledby="custTitle">
-        <h2 id="custTitle" data-i18n="cust.title">Who pays this business</h2>
-        <p class="panel-note" id="custNote"></p>
-        <div class="table-wrap"><table class="data" id="custTable"></table></div>
-      </section>
-
-      <section class="panel aging" aria-labelledby="agingTitle">
-        <h2 id="agingTitle" data-i18n="aging.title">Unpaid invoices by age</h2>
-        <p class="panel-note" data-i18n="aging.note">Outstanding at the end of the period, by days past the due date.</p>
-        <div id="agingBars" class="aging-bars"></div>
-      </section>
-
-      <section class="panel invoices" aria-labelledby="invTitle">
-        <h2 id="invTitle" data-i18n="inv.title">Invoices and the payments behind them</h2>
-        <div class="filters" role="group" aria-label="Filter invoices" data-i18n-aria="inv.filter">
-          <div class="seg" id="statusSeg"></div>
-          <label class="field"><span data-i18n="inv.search">Customer or invoice</span><input id="invSearch" type="search" placeholder="e.g. Al Majd or INV-26-0412" data-i18n-ph="inv.searchPh"></label>
-          <label class="field small"><span data-i18n="inv.min">Min. SAR</span><input id="invMin" type="number" min="0" step="1000" placeholder="0"></label>
-        </div>
-        <div class="table-wrap"><table class="data" id="invTable"></table></div>
-        <div class="pager"><span id="invCount"></span><div><button class="btn ghost" id="prevPage" type="button" data-i18n="prev">Previous</button><button class="btn ghost" id="nextPage" type="button" data-i18n="next">Next</button></div></div>
-      </section>
-
-      <section class="panel memo" aria-labelledby="memoTitle">
-        <div class="memo-head">
-          <h2 id="memoTitle" data-i18n="memo.title">Briefing memo</h2>
-          <button class="btn primary" id="writeMemo" type="button">Write memo</button>
-        </div>
-        <p class="panel-note" data-i18n="memo.note">Drafted by Claude from the verified figures above. It summarises evidence and questions; it does not recommend a decision.</p>
-        <div id="memoBody" class="memo-body" aria-live="polite"></div>
-      </section>
-
-      <section class="panel quality" id="data" aria-labelledby="qTitle">
-        <h2 id="qTitle" data-i18n="q.title">How this package was built</h2>
-        <dl id="quality" class="kv"></dl>
-        <h3 data-i18n="q.sample">Sample data</h3>
-        <p class="panel-note" data-i18n="q.sampleNote">Fully synthetic. The applicant, customers and banks are fictional.</p>
-        <ul id="sampleFiles" class="files"></ul>
-      </section>
     </div>
+  </section>
 
-    <p id="disclaimer" class="disclaimer" hidden></p>
+  <section class="glance" aria-labelledby="glanceTitle">
+    <div class="wrap">
+      <h2 id="glanceTitle" class="sr-only" data-i18n="glance.title">At a glance</h2>
+      <div class="glance-grid" id="glance">
+        <div class="gcard"><div class="skeleton" style="height:120px"></div></div>
+        <div class="gcard"><div class="skeleton" style="height:120px"></div></div>
+        <div class="gcard"><div class="skeleton" style="height:120px"></div></div>
+      </div>
+      <p id="loadError" class="load-error" role="alert" hidden></p>
+    </div>
+  </section>
+
+  <div class="tabs-bar">
+    <div class="wrap">
+      <div class="tabs" role="tablist" id="tabs" data-i18n-aria="tabs.label">
+        <button class="tab" role="tab" id="tab-overview" aria-controls="p-overview" data-tab="overview" data-i18n="tab.overview">Overview</button>
+        <button class="tab" role="tab" id="tab-revenue" aria-controls="p-revenue" data-tab="revenue" data-i18n="tab.revenue">Revenue verification</button>
+        <button class="tab" role="tab" id="tab-customers" aria-controls="p-customers" data-tab="customers" data-i18n="tab.customers">Customers</button>
+        <button class="tab" role="tab" id="tab-invoices" aria-controls="p-invoices" data-tab="invoices" data-i18n="tab.invoices">Invoices</button>
+        <button class="tab" role="tab" id="tab-memo" aria-controls="p-memo" data-tab="memo" data-i18n="tab.memo">Briefing memo</button>
+        <button class="tab" role="tab" id="tab-built" aria-controls="p-built" data-tab="built" data-i18n="tab.built">How it was built</button>
+      </div>
+    </div>
+  </div>
+
+  <main id="main" class="wrap" aria-busy="true">
+    <!-- Overview -->
+    <section class="tabpanel" role="tabpanel" id="p-overview" aria-labelledby="tab-overview" tabindex="0">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2 data-i18n="chart.title">Monthly sales and what the bank confirms</h2>
+            <p class="note" data-i18n="chart.note">Invoiced value per month (incl. VAT), split by whether a matching bank deposit was found.</p>
+          </div>
+          <button class="link" id="toggleTable" type="button" aria-expanded="false" aria-controls="ledgerTable"></button>
+        </div>
+        <ul class="legend">
+          <li><i class="sw confirmed" aria-hidden="true"></i><span data-i18n="legend.confirmed">Confirmed by bank deposit</span></li>
+          <li><i class="sw pastdue" aria-hidden="true"></i><span data-i18n="legend.pastdue">Past due, no deposit found</span></li>
+          <li><i class="sw notdue" aria-hidden="true"></i><span data-i18n="legend.notdue">Not yet due</span></li>
+        </ul>
+        <div class="chart-scroll"><div id="ledgerChart" class="chart" role="img"><div class="skeleton" style="height:260px"></div></div></div>
+        <div id="ledgerTable" class="table-wrap" hidden></div>
+      </div>
+      <div class="two-col">
+        <div class="panel">
+          <h2 data-i18n="flags.title">Needs attention</h2>
+          <p class="note" data-i18n="flags.note">Signals for the analyst to judge. Qawafel does not score or decide.</p>
+          <div id="flags" style="margin-top:12px"></div>
+        </div>
+        <div class="panel">
+          <h2 data-i18n="figs.title">Key figures</h2>
+          <div id="figures" class="figures"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Revenue verification -->
+    <section class="tabpanel" role="tabpanel" id="p-revenue" aria-labelledby="tab-revenue" tabindex="0" hidden>
+      <div class="panel">
+        <h2 data-i18n="rev.title">How much of the invoiced sales reached the bank</h2>
+        <p class="note" data-i18n="rev.note">Only invoices already past their due date can be confirmed. Newer invoices are shown separately.</p>
+        <div id="revStats" class="stats"></div>
+      </div>
+      <div class="panel">
+        <h2 data-i18n="rev.monthly">Month by month</h2>
+        <div class="table-wrap" style="margin-top:12px"><table class="data" id="revTable"></table></div>
+      </div>
+      <div class="panel">
+        <h2 data-i18n="aging.title">Unpaid invoices by age</h2>
+        <p class="note" data-i18n="aging.note">Outstanding at the end of the period, by days past the due date.</p>
+        <div id="aging" class="aging"></div>
+      </div>
+    </section>
+
+    <!-- Customers -->
+    <section class="tabpanel" role="tabpanel" id="p-customers" aria-labelledby="tab-customers" tabindex="0" hidden>
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2 data-i18n="cust.title">Who pays this business</h2>
+            <p class="note" id="custNote"></p>
+          </div>
+          <button class="link" id="toggleCust" type="button" hidden></button>
+        </div>
+        <div class="table-wrap"><table class="data stack" id="custTable"></table></div>
+      </div>
+    </section>
+
+    <!-- Invoices -->
+    <section class="tabpanel" role="tabpanel" id="p-invoices" aria-labelledby="tab-invoices" tabindex="0" hidden>
+      <div class="panel">
+        <h2 data-i18n="inv.title">Invoices and the payments behind them</h2>
+        <p class="note" data-i18n="inv.note">Open any invoice to see its source row and the bank transfers that paid it.</p>
+        <div class="filters" role="group" data-i18n-aria="inv.filter">
+          <div class="seg" id="statusSeg"></div>
+          <label class="field"><span data-i18n="inv.search">Customer or invoice number</span><input id="invSearch" type="search" autocomplete="off" data-i18n-ph="inv.searchPh"></label>
+          <label class="field small"><span data-i18n="inv.min">Minimum amount</span><input id="invMin" type="number" min="0" step="1000" inputmode="numeric" placeholder="0"></label>
+        </div>
+        <div class="table-wrap"><table class="data stack" id="invTable"></table></div>
+        <div class="pager">
+          <span id="invCount" aria-live="polite"></span>
+          <div>
+            <button class="btn" id="prevPage" type="button"><i class="ph ph-caret-left flip" aria-hidden="true"></i><span data-i18n="prev">Previous</span></button>
+            <button class="btn" id="nextPage" type="button"><span data-i18n="next">Next</span><i class="ph ph-caret-right flip" aria-hidden="true"></i></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Memo -->
+    <section class="tabpanel" role="tabpanel" id="p-memo" aria-labelledby="tab-memo" tabindex="0" hidden>
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2 data-i18n="memo.title">Briefing memo</h2>
+            <p class="note" data-i18n="memo.note">Drafted by Claude from the verified figures. It summarises evidence and open questions. It does not recommend a decision.</p>
+          </div>
+          <button class="btn primary" id="writeMemo" type="button"><i class="ph ph-pencil-simple-line" aria-hidden="true"></i><span id="writeMemoLabel"></span></button>
+        </div>
+        <div id="memoBody" class="memo-body" aria-live="polite"></div>
+        <p class="memo-disclaimer"><i class="ph ph-info" aria-hidden="true"></i><span data-i18n="disclaimer">Prepared by Qawafel from documents supplied by the applicant. Not a credit recommendation.</span></p>
+      </div>
+    </section>
+
+    <!-- How it was built -->
+    <section class="tabpanel" role="tabpanel" id="p-built" aria-labelledby="tab-built" tabindex="0" hidden>
+      <div class="panel">
+        <h2 data-i18n="q.title">Data checks</h2>
+        <p class="note" data-i18n="q.note">What was read, what was cleaned, and what was checked before any figure was shown.</p>
+        <ul id="checks" class="checks"></ul>
+      </div>
+      <div class="two-col">
+        <div class="panel">
+          <h2 data-i18n="q.methods">How payments were matched to invoices</h2>
+          <p class="note" data-i18n="q.methodsNote">Share of matched value by method, strongest evidence first.</p>
+          <div id="methods" class="methods"></div>
+        </div>
+        <div class="panel">
+          <h2 data-i18n="q.accuracy">Matching accuracy</h2>
+          <p class="note" data-i18n="q.accuracyNote">Measured on the sample data, where the true payment for every invoice is known.</p>
+          <div id="accuracy" class="figures"></div>
+        </div>
+      </div>
+      <div class="panel" id="data">
+        <h2 data-i18n="q.sample">Sample data</h2>
+        <p class="note" data-i18n="q.sampleNote">Fully synthetic. The applicant, customers and banks are fictional.</p>
+        <ul id="sampleFiles" class="files"></ul>
+      </div>
+    </section>
   </main>
 
-  <aside id="drawer" class="drawer" aria-hidden="true" aria-labelledby="drawerTitle" role="dialog" aria-modal="true">
-    <div class="drawer-panel">
-      <button class="drawer-close" id="closeDrawer" type="button" aria-label="Close" data-i18n-aria="close">×</button>
-      <div id="drawerBody"></div>
+  <footer class="wrap">
+    <p class="disclaimer"><i class="ph ph-info" aria-hidden="true"></i><span data-i18n="disclaimer">Prepared by Qawafel from documents supplied by the applicant. Not a credit recommendation.</span></p>
+  </footer>
+
+  <aside id="drawer" class="drawer" aria-hidden="true">
+    <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+      <div class="drawer-head">
+        <div id="drawerHead"></div>
+        <button class="drawer-close" id="closeDrawer" type="button" data-i18n-aria="close"><i class="ph ph-x" aria-hidden="true"></i></button>
+      </div>
+      <div class="drawer-body" id="drawerBody"></div>
     </div>
   </aside>
 
-  <dialog id="uploadDialog" class="upload">
+  <dialog id="uploadDialog" class="upload" aria-labelledby="uploadTitle">
     <form id="uploadForm" method="dialog">
-      <h2 data-i18n="up.title">Analyze your own files</h2>
-      <p class="panel-note" data-i18n="up.note">Statements must use the sample banks' PDF layout (one parser per bank template). Download the sample files to see the expected format.</p>
-      <label class="field"><span data-i18n="up.inv">Invoices (.xlsx)</span><input type="file" name="invoices" accept=".xlsx" required></label>
-      <label class="field"><span data-i18n="up.stm">Bank statements (.pdf, up to 36)</span><input type="file" name="statements" accept=".pdf" multiple required></label>
-      <label class="field"><span data-i18n="up.cust">Customer master (.csv, optional)</span><input type="file" name="customers" accept=".csv"></label>
-      <label class="field"><span data-i18n="up.org">Applicant profile (.json, optional)</span><input type="file" name="organization" accept=".json"></label>
+      <h2 id="uploadTitle" data-i18n="up.title">Analyze your own files</h2>
+      <p class="note" data-i18n="up.note">Statements must use the sample banks' PDF layout. Download the sample files to see the expected format.</p>
+      <div class="field"><span data-i18n="up.inv">Invoices (.xlsx)</span><label class="file"><input type="file" name="invoices" accept=".xlsx" required><span class="file-btn" data-i18n="up.choose">Choose file</span><span class="file-name"></span></label></div>
+      <div class="field"><span data-i18n="up.stm">Bank statements (.pdf, up to 36)</span><label class="file"><input type="file" name="statements" accept=".pdf" multiple required><span class="file-btn" data-i18n="up.chooseMany">Choose files</span><span class="file-name"></span></label></div>
+      <div class="field"><span data-i18n="up.cust">Customer list (.csv, optional)</span><label class="file"><input type="file" name="customers" accept=".csv"><span class="file-btn" data-i18n="up.choose">Choose file</span><span class="file-name"></span></label></div>
+      <div class="field"><span data-i18n="up.org">Applicant profile (.json, optional)</span><label class="file"><input type="file" name="organization" accept=".json"><span class="file-btn" data-i18n="up.choose">Choose file</span><span class="file-name"></span></label></div>
       <p id="uploadError" class="load-error" role="alert" hidden></p>
       <div class="dialog-actions">
-        <button class="btn ghost" type="button" id="cancelUpload" data-i18n="up.cancel">Cancel</button>
+        <button class="btn" type="button" id="cancelUpload" data-i18n="up.cancel">Cancel</button>
         <button class="btn primary" type="submit" id="submitUpload" data-i18n="up.submit">Analyze files</button>
       </div>
     </form>

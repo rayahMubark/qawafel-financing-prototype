@@ -29,7 +29,7 @@ Rules:
 
 ARABIC_INSTRUCTION = """
 
-Write the whole memo in Modern Standard Arabic. Use these Arabic headings instead, in this order:
+Write the whole memo in clear Modern Standard Arabic. Use these Arabic headings instead, in this order:
   ## لمحة عامة
   ## ما تدعمه الأدلة
   ## ما يحتاج إلى تحقق

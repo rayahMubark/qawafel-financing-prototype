@@ -79,6 +79,25 @@ def test_memo_falls_back_to_template_without_key():
     assert memo["source"] == "template" and "## What needs investigation" in memo["memo_markdown"]
 
 
+def test_flags_carry_params_for_client_wording(report):
+    flags = {f["type"]: f for f in report["flags"]}
+    assert all(isinstance(f["params"], dict) for f in report["flags"])
+    rp = flags["related_party"]["params"]
+    assert rp["customer"] and 0 < rp["share"] < 1 and rp["reasons"]
+    assert rp["returned_pct"] is None or 0 < rp["returned_pct"] <= 1
+    assert flags["duplicates"]["params"]["count"] == 3
+    sp = flags["stopped_paying"]["params"]
+    assert sp["count"] == len(flags["stopped_paying"]["evidence"]) and sp["amount"] > 0
+
+
+def test_memo_language():
+    pkg = client.get("/api/applications/demo/package").json()
+    ar = client.post("/api/memo", json={**pkg, "lang": "ar"}).json()
+    assert ar["source"] == "template" and "## ما يحتاج إلى تحقق" in ar["memo_markdown"]
+    en = client.post("/api/memo", json={**pkg, "lang": "en"}).json()
+    assert "## What needs investigation" in en["memo_markdown"]
+
+
 def test_upload_flow_matches_demo(report):
     stmts = sorted((DATA / "statements").glob("*.pdf"))
     files = [("invoices", ("inv.xlsx", (DATA / "invoices_2025-10_to_2026-09.xlsx").read_bytes()))]
