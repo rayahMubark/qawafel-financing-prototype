@@ -1,4 +1,5 @@
 stateDiagram-v2
+    direction LR
     [*] --> Draft
     Draft --> Processing : files uploaded, 12 months covered
     Processing --> ActionNeeded : missing or invalid files
@@ -9,5 +10,5 @@ stateDiagram-v2
     Processing --> AwaitingConsent : all checks pass
     AwaitingConsent --> SentToBank : SME consents
     SentToBank --> UnderReview : bank requests more info
-    SentToBank --> DecisionReceived : bank records decision
+    SentToBank --> DecisionReceived : decision confirmed
     DecisionReceived --> [*]

@@ -1,4 +1,5 @@
 erDiagram
+    direction LR
     ORGANIZATION ||--o{ BANK_ACCOUNT : owns
     ORGANIZATION ||--o{ CUSTOMER : "sells to"
     ORGANIZATION ||--o{ APPLICATION : submits
@@ -28,6 +29,7 @@ erDiagram
         uuid org_id FK
         string name
         string vat_number
+        json registry_data
     }
     APPLICATION {
         uuid id PK

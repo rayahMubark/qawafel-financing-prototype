@@ -78,7 +78,7 @@ PDFs  ──► extractor: parse tables, verify every row against the running ba
 | POST | `/api/memo` | AI briefing memo from a package |
 | GET | `/api/sample-data`, `/api/sample-data/{path}` | List and download the sample files |
 
-Interactive docs at `/docs`. Task 2 diagrams (data model, process flow, status) are in [`docs/`](docs) as Mermaid source. Errors share one format: `{"error": {"code", "message", "details"}}`.
+Interactive docs at `/docs`. Task 2 diagrams (data model, process flow, status) are listed in [`docs/README.md`](docs/README.md), as Mermaid source and PNG. Errors share one format: `{"error": {"code", "message", "details"}}`.
 
 ## Limitations
 

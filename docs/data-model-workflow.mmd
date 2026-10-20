@@ -1,16 +1,6 @@
 erDiagram
-    ORGANIZATION ||--o{ BANK_ACCOUNT : owns
-    ORGANIZATION ||--o{ CUSTOMER : "sells to"
-    ORGANIZATION ||--o{ APPLICATION : submits
-    ORGANIZATION |o--o{ USER : employs
     APPLICATION ||--o{ DOCUMENT : contains
-    BANK_ACCOUNT |o--o{ DOCUMENT : "statement of"
-    DOCUMENT ||--o{ INVOICE : "parsed into"
-    DOCUMENT ||--o{ BANK_TRANSACTION : "parsed into"
-    CUSTOMER ||--o{ INVOICE : "billed on"
-    BANK_ACCOUNT ||--o{ BANK_TRANSACTION : records
-    INVOICE ||--o{ MATCH_ALLOCATION : "paid by"
-    BANK_TRANSACTION ||--o{ MATCH_ALLOCATION : "pays"
+    DOCUMENT ||--o{ DOCUMENT_ISSUE : "has problems"
     APPLICATION ||--o{ REVIEW_ITEM : needs
     APPLICATION ||--o{ FLAG : raises
     APPLICATION ||--o{ INFO_REQUEST : has
@@ -18,92 +8,19 @@ erDiagram
     PACKAGE ||--o| CONSENT : "approved by"
     USER ||--o{ CONSENT : grants
     PACKAGE ||--o| BANK_SUBMISSION : "sent as"
+    BANK_SUBMISSION ||--o{ BANK_EVENT : receives
     APPLICATION ||--o| BANK_DECISION : receives
     USER ||--o{ AUDIT_LOG : performs
-
-    ORGANIZATION {
-        uuid id PK
-        string legal_name
-        string cr_number UK
-        string vat_number UK
-        json trade_names
-    }
     USER {
         uuid id PK
         uuid org_id FK "null for ops and bank users"
         string role "sme_owner | ops_analyst | bank_analyst"
         string email UK
     }
-    BANK_ACCOUNT {
-        uuid id PK
-        uuid org_id FK
-        string bank_name
-        string iban UK
-        string holder_name
-    }
-    CUSTOMER {
-        uuid id PK
-        uuid org_id FK
-        string name
-        string vat_number
-        string cr_number
-    }
     APPLICATION {
         uuid id PK
         uuid org_id FK
-        string status "see state diagram"
-        date period_start
-        date period_end
-        decimal requested_amount_sar
-        timestamp created_at
-    }
-    DOCUMENT {
-        uuid id PK
-        uuid application_id FK
-        uuid bank_account_id FK "statements only"
-        string type "invoice_file | bank_statement"
-        string storage_url
-        string sha256 "detects re-uploads"
-        date covers_from
-        date covers_to
-        string parse_status "pending | parsed | failed"
-    }
-    INVOICE {
-        uuid id PK
-        uuid document_id FK
-        uuid customer_id FK
-        string invoice_number "not unique: duplicates are flagged"
-        string kind "invoice | credit_note"
-        date issue_date
-        date due_date
-        decimal amount_excl_vat_sar
-        decimal vat_amount_sar
-        string original_currency
-        decimal original_amount
-        decimal fx_rate "1 for SAR, 3.75 for USD"
-        string source_ref "sheet and row"
-        float confidence "0 to 1"
-    }
-    BANK_TRANSACTION {
-        uuid id PK
-        uuid document_id FK
-        uuid bank_account_id FK
-        date txn_date
-        string direction "credit | debit"
-        decimal amount_sar
-        decimal balance_after_sar
-        string counterparty_name
-        string description
-        string source_ref "page and line"
-        float confidence "0 to 1"
-    }
-    MATCH_ALLOCATION {
-        uuid id PK
-        uuid invoice_id FK
-        uuid transaction_id FK
-        decimal allocated_amount_sar
-        string method "auto_exact | auto_fuzzy | manual"
-        float confidence "0 to 1"
+        string status
     }
     REVIEW_ITEM {
         uuid id PK
@@ -180,4 +97,28 @@ erDiagram
         json before_value
         json after_value
         timestamp created_at
+    }
+    DOCUMENT {
+        uuid id PK
+        uuid application_id FK
+        string type
+    }
+    DOCUMENT_ISSUE {
+        uuid id PK
+        uuid document_id FK
+        string location "sheet and row, or page"
+        string code "MISSING_MONTH | BAD_DATE | DUPLICATE | ..."
+        string message "shown to the SME"
+        string suggested_fix
+        string status "open | fixed"
+    }
+    BANK_EVENT {
+        uuid id PK
+        uuid submission_id FK
+        string event_id UK "dedupe key from the bank"
+        string channel "webhook | status_read"
+        string reported_status
+        json raw_payload
+        boolean accepted "false = rejected by state guard"
+        timestamp received_at
     }

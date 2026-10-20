@@ -1,0 +1,18 @@
+flowchart LR
+    S1([SME: start application]) --> S2[SME: declare bank accounts and trade names]
+    S2 --> S3[SME: upload invoices Excel and statements PDF]
+    S3 --> P1{12 consecutive months covered?}
+    P1 -- No --> S4[SME: fix and re-upload]
+    S4 --> P1
+    P1 -- Yes --> P2[AI extracts invoices and transactions]
+    P2 --> P3{Any field below 0.90 confidence?}
+    P3 -- Yes --> O1[Ops: confirm or correct values]
+    P3 -- No --> NEXT([to phase 2])
+    O1 --> NEXT
+    classDef sme fill:#FDF2E9,stroke:#C0702A,color:#000
+    classDef plat fill:#EAF2FB,stroke:#2E6DB4,color:#000
+    classDef ops fill:#EEF7EE,stroke:#3C8D40,color:#000
+    classDef bank fill:#F3EEFA,stroke:#6B47A8,color:#000
+    class S1,S2,S3,S4 sme
+    class P1,P2,P3,NEXT plat
+    class O1 ops

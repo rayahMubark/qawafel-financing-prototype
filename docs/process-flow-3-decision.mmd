@@ -1,0 +1,22 @@
+flowchart LR
+    P8[Package generated] --> S5[SME: review package and give consent]
+    S5 --> P9[Ops: submit to bank with idempotency key]
+    P9 --> P10{Bank acknowledged within 15 min?}
+    P10 -- No --> O3[Ops: alert raised, check status with bank]
+    O3 -- Not received --> P9
+    O3 -- Received --> B1
+    P10 -- Yes --> B1[Bank: credit analyst reviews package]
+    B1 --> B2{Bank: decision}
+    B2 -- Need more info --> O2([Ops: resolve or request documents])
+    B2 -- Approved, declined or conditional --> P11{Webhook and status read agree?}
+    P11 -- Yes --> S6([SME: notified of decision])
+    P11 -- No --> O4[Ops: verify with bank contact]
+    O4 --> S6
+    classDef sme fill:#FDF2E9,stroke:#C0702A,color:#000
+    classDef plat fill:#EAF2FB,stroke:#2E6DB4,color:#000
+    classDef ops fill:#EEF7EE,stroke:#3C8D40,color:#000
+    classDef bank fill:#F3EEFA,stroke:#6B47A8,color:#000
+    class S5,S6 sme
+    class P8,P10,P11 plat
+    class O3,O2,P9,O4 ops
+    class B1,B2 bank
