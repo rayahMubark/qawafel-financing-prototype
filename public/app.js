@@ -63,7 +63,8 @@ const I18N = {
     "g.realText": "of invoiced sales now due is confirmed by bank deposits.",
     "g.related": (share) => `Includes ${share} of sales from a possible related party.`,
     "g.critRev": "A critical check on revenue failed. See the flag before relying on this number.",
-    "g.stableText": (cv, peak, low) => `Average monthly sales, excl. VAT. Sales vary ${cv} month to month (peak ${peak}, low ${low}).`,
+    "g.stableText": "Average monthly sales, excl. VAT.",
+    "g.vary": (cv) => `Varies ${cv} month to month`, "g.peak": (m) => `Peak ${m}`, "g.low": (m) => `Low ${m}`,
     "g.signals": "signals to review", "g.none": "No risk signals were found in these documents.", "g.top": "Most serious:",
     "chart.title": "Monthly sales and what the bank confirms", "chart.note": "Invoiced value per month (incl. VAT), split by whether a matching bank deposit was found.",
     "legend.confirmed": "Confirmed by bank deposit", "legend.pastdue": "Past due, no deposit found", "legend.notdue": "Not yet due",
@@ -141,7 +142,8 @@ const I18N = {
     "g.realText": "من المبيعات المفوترة المستحقة حتى الآن مؤكدة بإيداعات بنكية.",
     "g.related": (share) => `تشمل ${share} من المبيعات لطرف ذي علاقة محتمل.`,
     "g.critRev": "فشل فحص حرج على الإيرادات. راجع التنبيه قبل الاعتماد على هذا الرقم.",
-    "g.stableText": (cv, peak, low) => `متوسط المبيعات الشهرية دون الضريبة. تتذبذب المبيعات ${cv} من شهر لآخر (الذروة ${peak}، الأدنى ${low}).`,
+    "g.stableText": "متوسط المبيعات الشهرية دون الضريبة.",
+    "g.vary": (cv) => `تتذبذب ${cv} من شهر لآخر`, "g.peak": (m) => `الذروة ${m}`, "g.low": (m) => `الأدنى ${m}`,
     "g.signals": "مؤشرات للمراجعة", "g.none": "لم تُرصد أي مؤشرات مخاطر في هذه المستندات.", "g.top": "الأهم:",
     "chart.title": "المبيعات الشهرية وما يؤكده البنك", "chart.note": "قيمة الفواتير الشهرية (شاملة الضريبة) حسب وجود إيداع بنكي مطابق.",
     "legend.confirmed": "مؤكدة بإيداع بنكي", "legend.pastdue": "متأخرة ولا يوجد إيداع", "legend.notdue": "لم تستحق بعد",
@@ -459,10 +461,11 @@ function renderGlance(r) {
   if (critRevenue) { tone = "crit"; ic = "warning-octagon"; }
   else if (related) { tone = "neutral"; ic = "scales"; }
   else if (lowWarn) { tone = "warn"; ic = "warning"; }
+  // Red is kept for the critical case; the related-party caveat is a neutral pointer to its flag.
   const realNote = critRevenue
-    ? `<p class="gnote">${icon("warning-octagon")}<button class="link" data-goflag="${flags.indexOf(critRevenue)}">${esc(t("g.critRev"))}</button></p>`
+    ? `<p class="gnote crit">${icon("warning-octagon")}<button class="link" data-goflag="${flags.indexOf(critRevenue)}">${esc(t("g.critRev"))}</button></p>`
     : related
-      ? `<p class="gnote">${icon("warning-octagon")}<button class="link" data-goflag="${flags.indexOf(related)}">${esc(t("g.related", pct(related.params?.share ?? 0)))}</button></p>`
+      ? `<p class="gnote">${icon("arrow-circle-down")}<button class="link" data-goflag="${flags.indexOf(related)}">${esc(t("g.related", pct(related.params?.share ?? 0)))}</button></p>`
       : "";
 
   const crit = flags.filter((f) => f.severity === "critical").length;
@@ -471,25 +474,26 @@ function renderGlance(r) {
   const attTone = crit ? "crit" : warn ? "warn" : "good";
   const attIcon = crit ? "warning-octagon" : warn ? "warning" : "check-circle";
   const attention = top && (crit || warn)
-    ? `<div class="gbig">${nf0.format(crit + warn)} <small>${esc(t("g.signals"))}</small></div>
-       <div class="counts">${crit ? `<span class="pill crit">${icon("warning-octagon")}${esc(count(crit, "critical"))}</span>` : ""}${warn ? `<span class="pill warn">${icon("warning")}${esc(count(warn, "warning"))}</span>` : ""}</div>
-       <p class="gtext">${esc(t("g.top"))} <button class="link" data-goflag="0">${esc(flagText(top).title)}</button></p>`
-    : `<p class="gtext">${esc(t("g.none"))}</p>`;
+    ? `<div class="gmid"><div class="gbig">${nf0.format(crit + warn)} <small>${esc(t("g.signals"))}</small></div>
+       <div class="counts">${crit ? `<span class="pill crit">${icon("warning-octagon")}${esc(count(crit, "critical"))}</span>` : ""}${warn ? `<span class="pill warn">${icon("warning")}${esc(count(warn, "warning"))}</span>` : ""}</div></div>
+       <p class="gnote">${icon("arrow-circle-down")}<span>${esc(t("g.top"))} <button class="link" data-goflag="0">${esc(flagText(top).title)}</button></span></p>`
+    : `<div class="gmid"><p class="gtext">${esc(t("g.none"))}</p></div>`;
+  const q = (text, name) => `<h3 class="gq"><span class="gicon">${icon(name)}</span>${esc(text)}</h3>`;
 
+  // Each card: question, then the number with its one-line explanation, then the caveat pinned to the bottom.
   $("glance").innerHTML = `
-    <article class="gcard ${tone}">
-      <h3 class="gq">${icon(ic)}${esc(t("g.real"))}</h3>
-      <div class="gbig">${pct(m.match_rate)}</div>
-      <p class="gtext">${esc(t("g.realText"))}</p>
+    <article class="gcard glass ${tone}">
+      ${q(t("g.real"), ic)}
+      <div class="gmid"><div class="gbig">${pct(m.match_rate)}</div><p class="gtext">${esc(t("g.realText"))}</p></div>
       ${realNote}
     </article>
-    <article class="gcard neutral">
-      <h3 class="gq">${icon("chart-line")}${esc(t("g.stable"))}</h3>
-      <div class="gbig">${esc(moneyShort(m.avg_monthly_revenue_net))}</div>
-      <p class="gtext">${esc(t("g.stableText", pct(m.revenue_volatility_cv, 0), monthShort(m.peak_month), monthShort(m.low_month)))}</p>
+    <article class="gcard glass neutral">
+      ${q(t("g.stable"), "chart-line")}
+      <div class="gmid"><div class="gbig">${esc(moneyShort(m.avg_monthly_revenue_net))}</div><p class="gtext">${esc(t("g.stableText"))}</p></div>
+      <div class="gnote chips"><span class="pill info">${icon("wave-sine")}${esc(t("g.vary", pct(m.revenue_volatility_cv, 0)))}</span><span class="pill info">${icon("arrow-up")}${esc(t("g.peak", monthShort(m.peak_month)))}</span><span class="pill info">${icon("arrow-down")}${esc(t("g.low", monthShort(m.low_month)))}</span></div>
     </article>
-    <article class="gcard ${attTone}">
-      <h3 class="gq">${icon(attIcon)}${esc(t("g.attention"))}</h3>
+    <article class="gcard glass ${attTone}">
+      ${q(t("g.attention"), attIcon)}
       ${attention}
     </article>`;
 }
