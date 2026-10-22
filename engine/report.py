@@ -309,7 +309,7 @@ def build_report(invoice_file, statement_files=(), customers_file=None, org_file
                                f"{row['share']:.1%} of revenue. Signals: {'; '.join(reasons)}.{ratio}",
                                [{"date": t["date"], "description": t["description"], "reference": t["reference"],
                                  "amount": t["debit"], "source_file": t["source_file"], "source_page": t["source_page"]}
-                                for t in back][:40],
+                                for t in back],
                                params={"customer": row["name_en"], "customer_ar": row.get("name_ar") or "",
                                        "customer_id": row["customer_id"], "share": row["share"], "reasons": codes,
                                        "registered_on": reg if "registered_recently" in codes else None,
@@ -342,7 +342,7 @@ def build_report(invoice_file, statement_files=(), customers_file=None, org_file
     if total_credits and unidentified_sar / total_credits > 0.02:
         flags.append(_flag("unidentified_inflows", "info", "Deposits from unidentified payers",
                            f"{_sar(unidentified_sar)} ({unidentified_sar / total_credits:.1%} of inflows) could not be linked to a known customer.",
-                           [t["reference"] for t in unidentified][:20],
+                           [t["reference"] for t in unidentified],
                            params={"amount": round(unidentified_sar, 2), "pct": round(unidentified_sar / total_credits, 4)},
                            title_ar="إيداعات من دافعين غير معروفين",
                            detail_ar=f"{_sar_ar(unidentified_sar)} ({unidentified_sar / total_credits:.1%} من التدفقات الواردة) تعذّر ربطها بعميل معروف."))
@@ -371,18 +371,30 @@ def build_report(invoice_file, statement_files=(), customers_file=None, org_file
                            detail_ar=f"أقساط تمويل متكررة بنحو {_sar_ar(mean(debt_service.values()))} شهريًا."))
     flags.sort(key=lambda f: SEVERITY_ORDER[f["severity"]])
 
-    # ---- human review queue: uncertain name matches ----
-    review = [{"bank_ref": t["reference"], "date": t["date"], "description": t["description"], "amount": t["credit"],
+    # ---- human review queue (US-05): uncertain payer names, plus every oldest-first allocation ----
+    # Oldest-first is a convention, not evidence (no reference, statement month or exact amount), so a person confirms it.
+    review = [{"reason": "uncertain_name", "bank_ref": t["reference"], "date": t["date"], "description": t["description"],
+               "amount": t["credit"], "invoice_number": None,
                "suggested_customer": resolver.customers.get(t["customer_id"], {}).get("name_en"),
-               "name_confidence": t["name_confidence"]}
+               "name_confidence": t["name_confidence"], "confidence": t["name_confidence"]}
               for t in customer_credits if t.get("needs_review")]
+    txn_by_ref = {t["reference"]: t for t in txns}
+    for a in allocations:
+        if a["method"] == "fifo":
+            t = txn_by_ref[a["bank_ref"]]
+            review.append({"reason": "oldest_first", "bank_ref": a["bank_ref"], "date": a["date"], "description": t["description"],
+                           "amount": a["amount_sar"], "invoice_number": a["invoice_number"],
+                           "suggested_customer": resolver.customers.get(t.get("customer_id"), {}).get("name_en"),
+                           "name_confidence": t.get("name_confidence"), "confidence": a["confidence"]})
 
     names = {cid: (c.get("name_en") or "") for cid, c in resolver.customers.items()}
     inv_out = [{
         "number": i["number"], "issue_date": i["issue_date"], "due_date": i["due_date"],
         "customer_id": i.get("customer_id"), "customer": names.get(i.get("customer_id"), i["customer_name"]),
         "customer_name_on_invoice": i["customer_name"], "net_sar": i["net_sar"], "expected_sar": i["expected_sar"],
-        "allocated_sar": i["allocated_sar"], "outstanding_sar": i["outstanding_sar"], "status": i["status"],
+        "allocated_sar": i["allocated_sar"], "outstanding_sar": i["outstanding_sar"],
+        # Another entity's invoices are not the applicant's sales: their own status keeps list counts equal to the metrics.
+        "status": "excluded_entity" if "entity_mismatch" in i["flags"] else i["status"],
         "days_to_pay": i.get("days_to_pay"), "days_past_due": i["days_past_due"], "flags": i["flags"],
         "credit_note": i.get("credit_note"), "original_currency": i["original_currency"],
         "original_total": i["original_total"], "source_ref": i["source_ref"],

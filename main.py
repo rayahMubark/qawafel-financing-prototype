@@ -61,7 +61,7 @@ def package(app_id: str):
 
 
 @app.get("/api/applications/{app_id}/invoices")
-def invoices(app_id: str, status: str | None = Query(None, pattern="^(matched|partial|unmatched|not_yet_due)$"),
+def invoices(app_id: str, status: str | None = Query(None, pattern="^(matched|partial|unmatched|not_yet_due|excluded_entity)$"),
              min_amount: float = 0, customer_id: str | None = None, limit: int = Query(50, le=500), offset: int = 0):
     """Drill into the invoices behind a metric (US-10, US-11)."""
     rows = [i for i in _report(app_id)["invoices"]

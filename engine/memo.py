@@ -129,6 +129,12 @@ def template_memo(ctx: dict) -> str:
     return "\n".join(lines)
 
 
+def _client(api_key: str):
+    import anthropic
+
+    return anthropic.Anthropic(api_key=api_key, timeout=45)
+
+
 def generate_memo(report_or_ctx: dict, lang: str = "en") -> dict:
     ctx = report_or_ctx if "monthly_revenue_net" in report_or_ctx else build_context(report_or_ctx)
     ar = lang == "ar"
@@ -138,21 +144,25 @@ def generate_memo(report_or_ctx: dict, lang: str = "en") -> dict:
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     model = os.environ.get("CLAUDE_MODEL", DEFAULT_MODEL)
     result = {"source": "template", "model": None, "memo_markdown": (template_memo_ar if ar else template_memo)(ctx), "note": None}
-    if api_key:
-        try:
-            import anthropic
-
-            client = anthropic.Anthropic(api_key=api_key, timeout=45)
-            msg = client.messages.create(
-                model=model, max_tokens=1400 if ar else 900, system=SYSTEM_PROMPT + (ARABIC_INSTRUCTION if ar else ""),
-                messages=[{"role": "user", "content": "Package JSON:\n" + json.dumps(ctx, ensure_ascii=False, default=str)}],
-            )
-            text = "".join(b.text for b in msg.content if getattr(b, "type", "") == "text").strip()
-            if text:
-                result = {"source": "claude", "model": model, "memo_markdown": text, "note": None}
-        except Exception as e:  # never fail the page because the model is unavailable
-            result["note"] = f"AI memo unavailable ({type(e).__name__}); showing the template memo."
-    else:
+    if not api_key:
         result["note"] = "No ANTHROPIC_API_KEY configured; showing the template memo."
-    _cache[key] = result
+        return result
+    try:
+        # Thinking counts against max_tokens: low effort keeps it short so the memo text always fits.
+        # fallbacks="default": if a safety classifier declines, the API retries on a suitable model.
+        msg = _client(api_key).beta.messages.create(
+            model=model, max_tokens=2000, output_config={"effort": "low"},
+            betas=["server-side-fallback-2026-07-01"], fallbacks="default",
+            system=SYSTEM_PROMPT + (ARABIC_INSTRUCTION if ar else ""),
+            messages=[{"role": "user", "content": "Package JSON:\n" + json.dumps(ctx, ensure_ascii=False, default=str)}],
+        )
+        text = "\n".join(b.text for b in msg.content if getattr(b, "type", "") == "text" and b.text).strip()
+        if text:
+            result = {"source": "claude", "model": getattr(msg, "model", None) or model, "memo_markdown": text, "note": None}
+            _cache[key] = result  # only successful Claude memos are cached; a fallback is retried next time
+            return result
+        result["note"] = f"AI memo returned no text (stop_reason={msg.stop_reason}); showing the template memo."
+    except Exception as e:  # never fail the page because the model is unavailable
+        result["note"] = f"AI memo unavailable ({type(e).__name__}: {e}); showing the template memo."
+    print(f"[memo] {result['note']}", flush=True)  # shows up in Vercel function logs
     return result

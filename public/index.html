@@ -81,10 +81,11 @@
             </div>
             <ul class="legend">
               <li><i class="sw confirmed" aria-hidden="true"></i><span data-i18n="legend.confirmed">Confirmed by bank deposit</span></li>
-              <li><i class="sw pastdue" aria-hidden="true"></i><span data-i18n="legend.pastdue">Past due, no deposit found</span></li>
-              <li><i class="sw notdue" aria-hidden="true"></i><span data-i18n="legend.notdue">Not yet due</span></li>
+              <li><i class="sw pastdue" aria-hidden="true"></i><span data-i18n="legend.pastdue">30+ days past due, no deposit found</span></li>
+              <li><i class="sw notdue" aria-hidden="true"></i><span data-i18n="legend.notdue">Not yet due or in 30-day grace</span></li>
             </ul>
             <div class="chart-scroll"><div id="ledgerChart" class="chart" role="img"><div class="skeleton" style="height:260px"></div></div></div>
+            <p class="note chart-note" data-i18n="chart.grace">Invoices count as past due 30 days after their due date.</p>
             <div id="ledgerTable" class="table-wrap" hidden></div>
           </div>
           <div class="panel span-4 flags-panel">
@@ -108,6 +109,7 @@
               <p class="note" data-i18n="rev.note">Only invoices already past their due date can be confirmed. Newer invoices are shown separately.</p>
             </div>
             <div id="revStats" class="stats"></div>
+            <p class="note rev-all" id="revAll"></p>
           </div>
           <div class="panel">
             <div class="panel-head"><h2 data-i18n="rev.monthly">Month by month</h2></div>

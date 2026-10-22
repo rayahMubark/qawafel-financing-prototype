@@ -61,7 +61,10 @@ const I18N = {
     "src.page": (n) => `page ${n}`, "src.openPdf": (f, n) => `Open ${f} at page ${n} (opens in a new tab)`,
     "src.copy": (r) => `Copy reference ${r}`, "src.copyShort": "Copy reference", "src.copied": "Reference copied",
     "src.xls": (n) => `Download Excel (row ${n})`, "src.hidden": "Columns E to H, J and K are not shown.",
-    "q.reviewTitle": "Payments sent to human review", "q.reviewItem": (c, conf) => `Suggested customer: ${c} (name match ${conf})`,
+    "q.reviewTitle": "Sent to human review", "q.reviewItem": (c, conf) => `Suggested customer: ${c} (name match ${conf})`,
+    "q.reviewOldest": (inv, c) => `Allocated oldest-first to ${inv} (confidence ${c})`,
+    "q.reviewWhy": (n) => `${n} allocations would go to the Qawafel ops queue, where a person confirms or corrects them before the package reaches the bank (US-05). They are the oldest-first allocations, the weakest evidence because nothing in the transfer names the invoice, plus any payer name matched below 80% confidence.`,
+    "q.reviewOpen": (n) => `Show the ${n} items`,
     "lang.group": "Language", "banner.text": "Showing the files you uploaded.", "banner.back": "Back to the sample applicant",
     "glance.title": "At a glance", "tabs.label": "Sections",
     "tab.overview": "Overview", "tab.revenue": "Revenue verification", "tab.customers": "Customers", "tab.invoices": "Invoices", "tab.memo": "Briefing memo", "tab.built": "How it was built",
@@ -74,20 +77,22 @@ const I18N = {
     "g.vary": (cv) => `Varies ${cv} month to month`, "g.peak": (m) => `Peak ${m}`, "g.low": (m) => `Low ${m}`,
     "g.signals": "signals to review", "g.none": "No risk signals were found in these documents.", "g.top": "Most serious:",
     "chart.title": "Monthly sales and what the bank confirms", "chart.note": "Invoiced value per month (incl. VAT), split by whether a matching bank deposit was found.",
-    "legend.confirmed": "Confirmed by bank deposit", "legend.pastdue": "Past due, no deposit found", "legend.notdue": "Not yet due",
+    "legend.confirmed": "Confirmed by bank deposit", "legend.pastdue": "30+ days past due, no deposit found", "legend.notdue": "Not yet due or in 30-day grace",
+    "chart.grace": "Invoices count as past due 30 days after their due date.",
     "table.show": "Show as table", "table.hide": "Hide table",
     "chart.aria": (a, b) => `Monthly invoiced sales from ${a} to ${b}. Use "Show as table" for exact values.`,
-    "tip.invoiced": "Invoiced (incl. VAT)", "tip.confirmed": "Confirmed", "tip.pastdue": "Past due", "tip.notdue": "Not yet due", "tip.share": "Confirmed of amount due",
-    "col.month": "Month", "col.net": "Net sales (excl. VAT)", "col.invoiced": "Invoiced (incl. VAT)", "col.confirmed": "Confirmed", "col.pastdue": "Past due", "col.notdue": "Not yet due", "col.inflows": "Money received", "col.balance": "Month-end balance",
+    "tip.invoiced": "Invoiced (incl. VAT)", "tip.confirmed": "Confirmed", "tip.pastdue": "30+ days past due", "tip.notdue": "Not yet due or in 30-day grace", "tip.share": "Confirmed of amount due",
+    "col.month": "Month", "col.net": "Net sales (excl. VAT)", "col.invoiced": "Invoiced (incl. VAT)", "col.confirmed": "Confirmed", "col.pastdue": "30+ days past due", "col.notdue": "Not yet due or in 30-day grace", "col.inflows": "Money received", "col.balance": "Month-end balance",
     "flags.title": "Needs attention", "flags.note": "Signals for the analyst to judge. Qawafel does not score or decide.",
     "sev.critical": "Critical", "sev.warning": "Warning", "sev.info": "Note",
     "flag.transfers": (n) => `Show the ${n} transfers`, "flag.invoices": (n) => (n === 1 ? "Show the invoice" : `Show the ${n} invoices`), "flag.customers": "Show customers",
     "figs.title": "Key figures", "fig.why": "What this means",
-    "rev.title": "How much of the invoiced sales reached the bank", "rev.note": "Only invoices already past their due date can be confirmed. Newer invoices are shown separately.",
-    "rev.confirmed": "Confirmed by bank deposits", "rev.pastdue": "Past due, no deposit found", "rev.notdue": "Not yet due", "rev.ofDue": (x) => `of ${x} now due`, "rev.monthly": "Month by month",
+    "rev.title": "How much of the invoiced sales reached the bank", "rev.note": "Only invoices more than 30 days past their due date count toward the confirmed share. Newer invoices are shown separately.",
+    "rev.confirmed": "Confirmed by bank deposits", "rev.pastdue": "30+ days past due, no deposit found", "rev.notdue": "Not yet due or in 30-day grace", "rev.ofDue": (x, p) => `of ${x} due 30+ days ago (${p})`, "rev.ofDueShare": "of the amount due 30+ days ago",
+    "rev.all": (c, i) => `All invoices in the 12 months: ${c} confirmed of ${i} invoiced. The figures above count only invoices more than 30 days past their due date, the same basis as the overview, because newer invoices are not expected to be paid yet.`, "rev.monthly": "Month by month",
     "aging.title": "Unpaid invoices by age", "aging.note": "Outstanding at the end of the period, by days past the due date.",
     "cust.title": "Who pays this business", "cust.note": (n) => `${n}. Payment days are weighted by invoice value.`, "cust.all": "Show all", "cust.top": "Show top 10",
-    "cust.name": "Customer", "cust.type": "Type", "cust.share": "Share of sales", "cust.sales": "Net sales", "cust.days": "Days to pay", "cust.overdue": "Past due, unpaid", "cust.signals": "Signals",
+    "cust.name": "Customer", "cust.type": "Type", "cust.share": "Share of sales", "cust.sales": "Net sales", "cust.days": "Days to pay", "cust.overdue": "30+ days past due, unpaid", "cust.signals": "Signals",
     "cust.cash": "Cash", "cust.terms": (d) => `${d}-day terms`,
     "sig.related_party": "Possible related party", "sig.stopped_paying": "Stopped paying",
     "inv.title": "Invoices and the payments behind them", "inv.note": "Open any invoice to see its source row and the bank transfers that paid it.", "inv.filter": "Filter invoices",
@@ -95,7 +100,8 @@ const I18N = {
     "inv.all": "All", "inv.flagged": "From a flag", "inv.no": "Invoice", "inv.customer": "Customer", "inv.amount": "Amount (incl. VAT)", "inv.status": "Status", "inv.timing": "Timing",
     "inv.empty": "No invoices match these filters. Clear the search or choose another status.",
     "inv.count": (a, b, n) => `${a}-${b} of ${nf0.format(n)} invoices`, "inv.zero": "0 invoices", prev: "Previous", next: "Next", "inv.open": "Open",
-    "st.matched": "Paid", "st.partial": "Partly paid", "st.unmatched": "No deposit found", "st.not_yet_due": "Not yet due",
+    "st.matched": "Paid", "st.partial": "Partly paid", "st.unmatched": "No deposit found", "st.not_yet_due": "Not yet due or in 30-day grace", "st.excluded_entity": "Excluded: other entity",
+    "d.excluded": "Issued under another company's VAT number, so it is excluded from the applicant's sales and from every metric.",
     "t.paid": (d) => `Paid in ${d}`, "t.late": (d) => `${d} past due`, "t.due": (d) => `Due ${d}`,
     "if.fx_converted": "Converted from USD", "if.entity_mismatch": "Issued by another company", "if.number_reused": "Invoice number reused",
     "d.invoice": "Invoice", "d.step1": "The invoice", "d.step2": "Where it comes from", "d.step3": "Bank transfers that paid it",
@@ -104,8 +110,8 @@ const I18N = {
     "d.source": (ref) => `Invoice register, ${ref}`, "d.paid": "Paid", "d.of": (a, b) => `${a} of ${b}`,
     "d.method": (m, c) => `${m} (confidence ${c})`, "d.account": (bank, last4) => `${bank}, account ending ${last4}`, "d.ref": "Ref", "d.page": ", page",
     "d.shared": (x) => `Part of a ${x} transfer that paid several invoices.`,
-    "d.none": "No matching deposit was found in the statements.", "d.notDue": "The invoice is not yet due.",
-    "d.transfersTitle": "Transfers back to this customer",
+    "d.none": "No matching deposit was found in the statements.", "d.notDue": "The invoice is not yet due, or is within the 30-day grace after its due date.",
+    "d.transfersTitle": "Transfers back to this customer", "d.range": (a, b, n) => `${a}-${b} of ${n}`,
     close: "Close",
     "m.reference": "Transfer quotes the invoice number", "m.statement": "Monthly statement payment", "m.exact": "Exact amount match", "m.fifo": "Oldest invoice first", "m.cash_batch": "Weekly cash deposit",
     "memo.title": "Briefing memo", "memo.note": "Drafted by Claude from the verified figures. It summarises evidence and open questions. It does not recommend a decision.",
@@ -121,7 +127,7 @@ const I18N = {
     "q.entity": "Invoices from another company", "q.entitySub": "Excluded from sales",
     "q.stm": "Bank statements that add up", "q.stmSub": "Every row checked against the running balance", "q.of": (a, b) => `${a} of ${b}`,
     "q.tx": "Bank transactions read", "q.months": "Months covered", "q.monthsOk": "All 12 months of invoices and statements", "q.monthsMissing": "Some months are missing",
-    "q.review": "Payer names sent to human review", "q.reviewSub": "Name matches below 80% confidence",
+    "q.review": "Matches sent to human review", "q.reviewSub": "Oldest-first allocations and payer names below 80% confidence",
     "q.complete": "Complete", "q.gaps": "Gaps",
     "q.methods": "How payments were matched to invoices", "q.methodsNote": "Share of matched value by method, strongest evidence first.",
     "q.accuracy": "Matching accuracy", "q.accuracyNote": "Measured on the sample data, where the true payment for every invoice is known.",
@@ -147,7 +153,10 @@ const I18N = {
     "src.page": (n) => `صفحة ${n}`, "src.openPdf": (f, n) => `افتح ${f} على الصفحة ${n} (في علامة تبويب جديدة)`,
     "src.copy": (r) => `انسخ المرجع ${r}`, "src.copyShort": "انسخ المرجع", "src.copied": "نُسخ المرجع",
     "src.xls": (n) => `نزّل ملف Excel (الصف ${n})`, "src.hidden": "الأعمدة من ⁦E⁩ إلى ⁦H⁩ و⁦J⁩ و⁦K⁩ غير معروضة.",
-    "q.reviewTitle": "دفعات أُحيلت للمراجعة البشرية", "q.reviewItem": (c, conf) => `العميل المقترح: ${c} (تطابق الاسم ${conf})`,
+    "q.reviewTitle": "أُحيلت للمراجعة البشرية", "q.reviewItem": (c, conf) => `العميل المقترح: ${c} (تطابق الاسم ${conf})`,
+    "q.reviewOldest": (inv, c) => `خُصصت للفاتورة ${inv} بطريقة الأقدم أولًا (الثقة ${c})`,
+    "q.reviewWhy": (n) => `${countAr(n, ["تخصيص واحد", "تخصيصان", "تخصيصات", "تخصيصًا"])} سيذهب إلى قائمة عمليات قوافل، حيث يؤكده شخص أو يصححه قبل وصول الحزمة إلى البنك (US-05). هي تخصيصات "الأقدم أولًا"، وهي أضعف دليل لأن التحويل لا يذكر الفاتورة، إضافة إلى أي اسم دافع طابق بثقة أقل من ⁦80%⁩.`,
+    "q.reviewOpen": (n) => `اعرض العناصر (${n})`,
     "lang.group": "اللغة", "banner.text": "تُعرض الملفات التي رفعتها.", "banner.back": "العودة إلى مقدم الطلب النموذجي",
     "glance.title": "نظرة سريعة", "tabs.label": "الأقسام",
     "tab.overview": "نظرة عامة", "tab.revenue": "التحقق من الإيرادات", "tab.customers": "العملاء", "tab.invoices": "الفواتير", "tab.memo": "مذكرة الإحاطة", "tab.built": "كيف أُعدّ الملف",
@@ -160,20 +169,22 @@ const I18N = {
     "g.vary": (cv) => `تتذبذب ${cv} من شهر لآخر`, "g.peak": (m) => `الذروة ${m}`, "g.low": (m) => `الأدنى ${m}`,
     "g.signals": "مؤشرات للمراجعة", "g.none": "لم تُرصد أي مؤشرات مخاطر في هذه المستندات.", "g.top": "الأهم:",
     "chart.title": "المبيعات الشهرية وما يؤكده البنك", "chart.note": "قيمة الفواتير الشهرية (شاملة الضريبة) حسب وجود إيداع بنكي مطابق.",
-    "legend.confirmed": "مؤكدة بإيداع بنكي", "legend.pastdue": "متأخرة ولا يوجد إيداع", "legend.notdue": "لم تستحق بعد",
+    "legend.confirmed": "مؤكدة بإيداع بنكي", "legend.pastdue": "متأخرة أكثر من 30 يومًا ولا يوجد إيداع", "legend.notdue": "لم يستحق أو ضمن مهلة 30 يومًا",
+    "chart.grace": "تُحتسب الفاتورة متأخرة بعد 30 يومًا من تاريخ استحقاقها.",
     "table.show": "اعرض كجدول", "table.hide": "إخفاء الجدول",
     "chart.aria": (a, b) => `المبيعات المفوترة شهريًا من ${a} إلى ${b}. استخدم «اعرض كجدول» للقيم الدقيقة.`,
-    "tip.invoiced": "المفوتر (شامل الضريبة)", "tip.confirmed": "مؤكد", "tip.pastdue": "متأخر", "tip.notdue": "لم يستحق بعد", "tip.share": "المؤكد من المستحق",
-    "col.month": "الشهر", "col.net": "صافي المبيعات (دون الضريبة)", "col.invoiced": "المفوتر (شامل الضريبة)", "col.confirmed": "مؤكد", "col.pastdue": "متأخر", "col.notdue": "لم يستحق بعد", "col.inflows": "الأموال المستلمة", "col.balance": "رصيد نهاية الشهر",
+    "tip.invoiced": "المفوتر (شامل الضريبة)", "tip.confirmed": "مؤكد", "tip.pastdue": "متأخر أكثر من 30 يومًا", "tip.notdue": "لم يستحق أو ضمن مهلة 30 يومًا", "tip.share": "المؤكد من المستحق",
+    "col.month": "الشهر", "col.net": "صافي المبيعات (دون الضريبة)", "col.invoiced": "المفوتر (شامل الضريبة)", "col.confirmed": "مؤكد", "col.pastdue": "متأخر أكثر من 30 يومًا", "col.notdue": "لم يستحق أو ضمن مهلة 30 يومًا", "col.inflows": "الأموال المستلمة", "col.balance": "رصيد نهاية الشهر",
     "flags.title": "يحتاج إلى انتباه", "flags.note": "مؤشرات يقيّمها المحلل. قوافل لا تمنح تقييمًا ولا تتخذ القرار.",
     "sev.critical": "حرج", "sev.warning": "تحذير", "sev.info": "ملاحظة",
     "flag.transfers": (n) => `اعرض التحويلات (${n})`, "flag.invoices": (n) => (n === 1 ? "اعرض الفاتورة" : `اعرض الفواتير (${n})`), "flag.customers": "اعرض العملاء",
     "figs.title": "أرقام رئيسية", "fig.why": "ماذا يعني هذا",
-    "rev.title": "كم من المبيعات المفوترة وصل إلى البنك", "rev.note": "لا يمكن تأكيد إلا الفواتير التي تجاوزت تاريخ استحقاقها. تظهر الفواتير الأحدث منفصلة.",
-    "rev.confirmed": "مؤكدة بإيداعات بنكية", "rev.pastdue": "متأخرة ولا يوجد إيداع", "rev.notdue": "لم تستحق بعد", "rev.ofDue": (x) => `من أصل ${x} مستحقة`, "rev.monthly": "شهرًا بشهر",
+    "rev.title": "كم من المبيعات المفوترة وصل إلى البنك", "rev.note": "لا تدخل في نسبة التأكيد إلا الفواتير التي مضى على استحقاقها أكثر من 30 يومًا. تظهر الفواتير الأحدث منفصلة.",
+    "rev.confirmed": "مؤكدة بإيداعات بنكية", "rev.pastdue": "متأخرة أكثر من 30 يومًا ولا يوجد إيداع", "rev.notdue": "لم يستحق أو ضمن مهلة 30 يومًا", "rev.ofDue": (x, p) => `من أصل ${x} مستحقة منذ أكثر من 30 يومًا (${p})`, "rev.ofDueShare": "من المبلغ المستحق منذ أكثر من 30 يومًا",
+    "rev.all": (c, i) => `كل فواتير الأشهر الاثني عشر: ${c} مؤكدة من أصل ${i} مفوترة. الأرقام أعلاه تشمل فقط الفواتير التي مضى على استحقاقها أكثر من 30 يومًا، وهو أساس الشاشة الأولى نفسه، لأن الفواتير الأحدث لا يُتوقع سدادها بعد.`, "rev.monthly": "شهرًا بشهر",
     "aging.title": "الفواتير غير المسددة حسب العمر", "aging.note": "المبالغ القائمة في نهاية الفترة، حسب الأيام بعد تاريخ الاستحقاق.",
     "cust.title": "من يدفع لهذه المنشأة", "cust.note": (n) => `${n}. أيام السداد مرجّحة بقيمة الفاتورة.`, "cust.all": "اعرض الكل", "cust.top": "اعرض أكبر 10",
-    "cust.name": "العميل", "cust.type": "النوع", "cust.share": "الحصة من المبيعات", "cust.sales": "صافي المبيعات", "cust.days": "أيام السداد", "cust.overdue": "متأخر وغير مسدد", "cust.signals": "المؤشرات",
+    "cust.name": "العميل", "cust.type": "النوع", "cust.share": "الحصة من المبيعات", "cust.sales": "صافي المبيعات", "cust.days": "أيام السداد", "cust.overdue": "متأخر أكثر من 30 يومًا وغير مسدد", "cust.signals": "المؤشرات",
     "cust.cash": "نقدًا", "cust.terms": (d) => `آجل ${countAr(+d, NOUNS_AR.day)}`,
     "sig.related_party": "طرف ذو علاقة محتمل", "sig.stopped_paying": "توقف عن السداد",
     "inv.title": "الفواتير والمدفوعات المرتبطة بها", "inv.note": "افتح أي فاتورة لترى مصدرها والتحويلات البنكية التي سددتها.", "inv.filter": "تصفية الفواتير",
@@ -181,7 +192,8 @@ const I18N = {
     "inv.all": "الكل", "inv.flagged": "من تنبيه", "inv.no": "الفاتورة", "inv.customer": "العميل", "inv.amount": "المبلغ (شامل الضريبة)", "inv.status": "الحالة", "inv.timing": "التوقيت",
     "inv.empty": "لا توجد فواتير تطابق هذه المرشحات. امسح البحث أو اختر حالة أخرى.",
     "inv.count": (a, b, n) => `${a}-${b} من ${countAr(n, NOUNS_AR.invoice)}`, "inv.zero": "لا توجد فواتير", prev: "السابق", next: "التالي", "inv.open": "افتح",
-    "st.matched": "مسددة", "st.partial": "مسددة جزئيًا", "st.unmatched": "لا يوجد إيداع", "st.not_yet_due": "لم تستحق بعد",
+    "st.matched": "مسددة", "st.partial": "مسددة جزئيًا", "st.unmatched": "لا يوجد إيداع", "st.not_yet_due": "لم يستحق أو ضمن مهلة 30 يومًا", "st.excluded_entity": "مستبعدة: منشأة أخرى",
+    "d.excluded": "صادرة برقم ضريبي لمنشأة أخرى، لذلك استُبعدت من مبيعات مقدم الطلب ومن كل المؤشرات.",
     "t.paid": (d) => `سُددت خلال ${d}`, "t.late": (d) => `متأخرة ${d}`, "t.due": (d) => `تستحق ${d}`,
     "if.fx_converted": "محوّلة من الدولار", "if.entity_mismatch": "صادرة من منشأة أخرى", "if.number_reused": "رقم فاتورة مكرر",
     "d.invoice": "فاتورة", "d.step1": "الفاتورة", "d.step2": "مصدرها", "d.step3": "التحويلات البنكية التي سددتها",
@@ -190,8 +202,8 @@ const I18N = {
     "d.source": (ref) => `سجل الفواتير، ${ref}`, "d.paid": "المسدد", "d.of": (a, b) => `${a} من ${b}`,
     "d.method": (m, c) => `${m} (الثقة ${c})`, "d.account": (bank, last4) => `${bank}، الحساب المنتهي بـ ${last4}`, "d.ref": "المرجع", "d.page": "، صفحة",
     "d.shared": (x) => `جزء من تحويل بقيمة ${x} سدّد عدة فواتير.`,
-    "d.none": "لم يُعثر على إيداع مطابق في كشوف الحساب.", "d.notDue": "الفاتورة لم تستحق بعد.",
-    "d.transfersTitle": "التحويلات المعادة إلى هذا العميل",
+    "d.none": "لم يُعثر على إيداع مطابق في كشوف الحساب.", "d.notDue": "الفاتورة لم تستحق بعد، أو ما زالت ضمن مهلة 30 يومًا بعد استحقاقها.",
+    "d.transfersTitle": "التحويلات المعادة إلى هذا العميل", "d.range": (a, b, n) => `${a}-${b} من ${n}`,
     close: "إغلاق",
     "m.reference": "التحويل يذكر رقم الفاتورة", "m.statement": "سداد كشف حساب شهري", "m.exact": "تطابق تام في المبلغ", "m.fifo": "الفاتورة الأقدم أولًا", "m.cash_batch": "إيداع نقدي أسبوعي",
     "memo.title": "مذكرة الإحاطة", "memo.note": "يصوغها Claude من الأرقام الموثّقة. تلخّص الأدلة والأسئلة المفتوحة ولا توصي بقرار.",
@@ -207,7 +219,7 @@ const I18N = {
     "q.entity": "فواتير من منشأة أخرى", "q.entitySub": "مستبعدة من المبيعات",
     "q.stm": "كشوف حساب متطابقة الأرصدة", "q.stmSub": "كل صف فُحص مقابل الرصيد الجاري", "q.of": (a, b) => `${a} من ${b}`,
     "q.tx": "المعاملات البنكية المقروءة", "q.months": "الأشهر المغطاة", "q.monthsOk": "12 شهرًا كاملة من الفواتير والكشوف", "q.monthsMissing": "بعض الأشهر ناقصة",
-    "q.review": "أسماء دافعين أُحيلت للمراجعة البشرية", "q.reviewSub": "مطابقات أسماء بثقة أقل من ⁦80%⁩",
+    "q.review": "مطابقات أُحيلت للمراجعة البشرية", "q.reviewSub": "تخصيصات الأقدم أولًا وأسماء دافعين بثقة أقل من ⁦80%⁩",
     "q.complete": "مكتملة", "q.gaps": "ناقصة",
     "q.methods": "كيف رُبطت المدفوعات بالفواتير", "q.methodsNote": "حصة القيمة المطابقة حسب الطريقة، من الأقوى دليلًا.",
     "q.accuracy": "دقة المطابقة", "q.accuracyNote": "مقيسة على بيانات العينة، حيث الدفعة الصحيحة لكل فاتورة معروفة.",
@@ -274,8 +286,8 @@ const FLAG_TEXT = {
       ...(p.missing_statements || []).map((s) => `No statement for ${s.months.map(monthShort).join(", ")} on the account ending ${s.account_last4}.`)].filter(Boolean).join(" ") }),
     statement_balance: (p) => ({ title: "Statement totals do not add up", detail: `${count(p.count, "statement")} fail the running-balance check. This can mean an edited PDF or a reading error.` }),
     low_match_rate: (p, f) => ({ title: f.severity === "critical" ? "Low share of sales confirmed by the bank" : "Part of sales not confirmed by the bank", detail: `${pct(p.rate)} of invoiced value now due is confirmed by bank deposits.` }),
-    unmatched_large: (p) => ({ title: `${count(p.count, "invoice")} over ${money(p.threshold)} past due and not collected`, detail: `${money(p.amount)} invoiced but not found in the bank statements.` }),
-    stopped_paying: (p) => ({ title: `${custName(p)} has stopped paying`, detail: `No payment since ${dateLabel(p.last_payment)}. ${money(p.amount)} past due across ${count(p.count, "invoice")}.` }),
+    unmatched_large: (p) => ({ title: `${count(p.count, "invoice")} over ${money(p.threshold)} more than 30 days past due and not collected`, detail: `${money(p.amount)} invoiced but not found in the bank statements.` }),
+    stopped_paying: (p) => ({ title: `${custName(p)} has stopped paying`, detail: `No payment since ${dateLabel(p.last_payment)}. ${money(p.amount)} more than 30 days past due across ${count(p.count, "invoice")}.` }),
     concentration: (p) => ({ title: "Sales depend on a few customers", detail: `Largest customer ${pct(p.top1)} and top 5 customers ${pct(p.top5)} of sales.` }),
     related_party: (p) => ({ title: `Possible related party: ${custName(p)}`, detail:
       `${pct(p.share)} of sales. Signals: ${reasonList(p, "en").join("; ")}.` +
@@ -295,8 +307,8 @@ const FLAG_TEXT = {
       ...(p.missing_statements || []).map((s) => `لا يوجد كشف لأشهر ${s.months.map(monthShort).join("، ")} للحساب المنتهي بـ ${s.account_last4}.`)].filter(Boolean).join(" ") }),
     statement_balance: (p) => ({ title: "أرصدة الكشوف لا تتطابق", detail: `${countAr(p.count, NOUNS_AR.statement)} لا تجتاز فحص الرصيد الجاري. قد يعني ذلك ملف PDF معدّلًا أو خطأ في القراءة.` }),
     low_match_rate: (p, f) => ({ title: f.severity === "critical" ? "نسبة منخفضة من المبيعات مؤكدة من البنك" : "جزء من المبيعات غير مؤكد من البنك", detail: `${pct(p.rate)} من قيمة الفواتير المستحقة مؤكدة بإيداعات بنكية.` }),
-    unmatched_large: (p) => ({ title: `فواتير فوق ${money(p.threshold)} متأخرة ولم تُحصّل (${p.count})`, detail: `${money(p.amount)} مفوترة ولم يُعثر عليها في كشوف الحساب.` }),
-    stopped_paying: (p) => ({ title: `توقف عن السداد: ${custName(p)}`, detail: `لا توجد دفعات منذ ${dateLabel(p.last_payment)}. ${money(p.amount)} متأخرة على ${countAr(p.count, NOUNS_AR.invoice)}.` }),
+    unmatched_large: (p) => ({ title: `فواتير فوق ${money(p.threshold)} متأخرة أكثر من 30 يومًا ولم تُحصّل (${p.count})`, detail: `${money(p.amount)} مفوترة ولم يُعثر عليها في كشوف الحساب.` }),
+    stopped_paying: (p) => ({ title: `توقف عن السداد: ${custName(p)}`, detail: `لا توجد دفعات منذ ${dateLabel(p.last_payment)}. ${money(p.amount)} متأخرة أكثر من 30 يومًا على ${countAr(p.count, NOUNS_AR.invoice)}.` }),
     concentration: (p) => ({ title: "المبيعات تعتمد على عدد قليل من العملاء", detail: `أكبر عميل ${pct(p.top1)} وأكبر 5 عملاء ${pct(p.top5)} من المبيعات.` }),
     related_party: (p) => ({ title: `طرف ذو علاقة محتمل: ${custName(p)}`, detail:
       `${pct(p.share)} من المبيعات. المؤشرات: ${reasonList(p, "ar").join("؛ ")}.` +
@@ -693,11 +705,14 @@ function renderFigures(r) {
 // ---------- revenue verification ----------
 function renderRevenue(r) {
   const sum = (k) => r.monthly.reduce((s, d) => s + (d[k] || 0), 0);
-  const collected = sum("collected"), pastdue = sum("open_past_due"), notdue = sum("not_yet_due");
+  // Headline on the collectible basis (due 30+ days ago), the same basis as the match rate on the overview card.
+  const m = r.metrics, due = m.collectible_invoiced_gross, confirmed = m.collectible_collected_gross, missing = Math.max(due - confirmed, 0);
+  const notdue = sum("not_yet_due");
   $("revStats").innerHTML = `
-    <div class="stat confirmed"><span>${esc(t("rev.confirmed"))}</span><strong>${esc(moneyShort(collected))}</strong><span>${esc(t("rev.ofDue", moneyShort(collected + pastdue)))}</span></div>
-    <div class="stat pastdue"><span>${esc(t("rev.pastdue"))}</span><strong>${esc(moneyShort(pastdue))}</strong><span>${esc(pct(pastdue / ((collected + pastdue) || 1)))}</span></div>
+    <div class="stat confirmed"><span>${esc(t("rev.confirmed"))}</span><strong>${esc(moneyShort(confirmed))}</strong><span>${esc(t("rev.ofDue", moneyShort(due), pct(m.match_rate)))}</span></div>
+    <div class="stat pastdue"><span>${esc(t("rev.pastdue"))}</span><strong>${esc(moneyShort(missing))}</strong><span>${esc(pct(missing / (due || 1)))} ${esc(t("rev.ofDueShare"))}</span></div>
     <div class="stat notdue"><span>${esc(t("rev.notdue"))}</span><strong>${esc(moneyShort(notdue))}</strong><span>${esc(count(r.metrics.invoice_status?.not_yet_due || 0, "invoice"))}</span></div>`;
+  $("revAll").textContent = t("rev.all", moneyShort(sum("collected")), moneyShort(sum("invoiced_gross")));
   $("revTable").outerHTML = ledgerTable(r.monthly).replace('<table class="data">', '<table class="data" id="revTable">');
   $("aging").innerHTML = r.aging.map((a, i) => `<div class="age b${i}"><span>${esc((ar() && a.bucket_ar) || a.bucket)}</span>
     <strong>${esc(money(a.amount))}</strong><span>${esc(count(a.invoices, "invoice"))}</span></div>`).join("");
@@ -733,6 +748,7 @@ function renderStatusSeg() {
   const counts = { all: 0 };
   for (const i of state.report.invoices) { counts.all++; counts[i.status] = (counts[i.status] || 0) + 1; }
   const opts = [["all", t("inv.all")], ["unmatched", t("st.unmatched")], ["partial", t("st.partial")], ["not_yet_due", t("st.not_yet_due")], ["matched", t("st.matched")]];
+  if (counts.excluded_entity) opts.push(["excluded_entity", t("st.excluded_entity")]);
   if (state.evidence) opts.push(["evidence", t("inv.flagged")]);
   $("statusSeg").innerHTML = opts.map(([k, label]) => `<button type="button" data-status="${k}" aria-pressed="${state.status === k}">${esc(label)}<span class="count">${k === "evidence" ? state.evidence.size : counts[k] || 0}</span></button>`).join("");
 }
@@ -749,7 +765,7 @@ function timing(i) {
   if (i.days_past_due > 0) return t("t.late", count(i.days_past_due, "day"));
   return t("t.due", dateLabel(i.due_date));
 }
-const STATUS_ICON = { matched: "check-circle", partial: "circle-half", unmatched: "warning", not_yet_due: "clock" };
+const STATUS_ICON = { matched: "check-circle", partial: "circle-half", unmatched: "warning", not_yet_due: "clock", excluded_entity: "prohibit" };
 const statusBadge = (s) => `<span class="status ${s}">${icon(STATUS_ICON[s] || "circle")}${esc(t(`st.${s}`))}</span>`;
 function renderInvoices() {
   const rows = filteredInvoices();
@@ -804,7 +820,7 @@ function openInvoice(no) {
   const allocs = state.allocByInv.get(no) || [];
   const paid = allocs.reduce((s, a) => s + a.amount_sar, 0);
   const share = i.expected_sar ? Math.min(1, paid / i.expected_sar) : 0;
-  const tone = i.status === "matched" ? "good" : i.status === "not_yet_due" ? "info" : "warn";
+  const tone = i.status === "matched" ? "good" : ["not_yet_due", "excluded_entity"].includes(i.status) ? "info" : "warn";
   const head = `<p class="kicker">${esc(t("d.invoice"))}</p><h2 id="drawerTitle">${ltr(i.number)}</h2><span class="pill ${tone}">${icon(STATUS_ICON[i.status])}${esc(t(`st.${i.status}`))}</span>`;
   const pays = allocs.map((a) => {
     const tx = state.creditByRef.get(a.bank_ref) || {};
@@ -829,6 +845,7 @@ function openInvoice(no) {
         <dt>${esc(t("d.net"))}</dt><dd>${esc(money2(i.net_sar))}${i.original_currency !== "SAR" ? `<small>${esc(t("d.fx", i.original_currency, nf2.format(i.original_total)))}</small>` : ""}</dd>
         <dt>${esc(t("d.expected"))}</dt><dd>${esc(money2(i.expected_sar))}${i.credit_note ? `<small>${esc(t("d.creditNote", i.credit_note))}</small>` : ""}</dd>
       </dl>
+      ${i.status === "excluded_entity" ? `<p class="note">${icon("prohibit")} ${esc(t("d.excluded"))}</p>` : ""}
     </section>
     <section class="trail-step"><span class="trail-dot">${icon("table")}</span><h3>${esc(t("d.step2"))}</h3>
       ${sourceRow(i)}
@@ -842,6 +859,24 @@ function openInvoice(no) {
   openDrawer(head, body);
 }
 
+function openReview() {
+  const q = state.report.review_queue;
+  const head = `<p class="kicker">${esc(t("q.title"))}</p><h2 id="drawerTitle">${esc(t("q.reviewTitle"))}: ${nf0.format(q.length)}</h2>`;
+  const rows = q.map((x) => {
+    const tx = state.creditByRef.get(x.bank_ref) || {};
+    const why = x.reason === "oldest_first"
+      ? t("q.reviewOldest", x.invoice_number, pct(x.confidence || 0, 0))
+      : t("q.reviewItem", x.suggested_customer || "-", pct(x.name_confidence || 0, 0));
+    return `<div class="pay">
+      <div class="pay-top"><span class="pay-amt">${esc(money2(x.amount))}</span><span>${esc(dateLabel(x.date))}</span></div>
+      <div class="pay-desc">${esc(x.description)}</div>
+      <div class="pay-src">${tx.source_file ? pdfLink(tx.source_file, tx.source_page) : ""}${refCopy(x.bank_ref)}</div>
+      <div class="pay-meta"><span>${icon(x.reason === "oldest_first" ? "stack" : "user-focus")}${esc(why)}</span></div>
+    </div>`;
+  });
+  openListDrawer(head, `<p class="note">${esc(t("q.reviewWhy", q.length))}</p>`, rows);
+}
+
 function openTransfers(flag) {
   const { title, detail } = flagText(flag);
   const sev = SEV[flag.severity];
@@ -851,9 +886,28 @@ function openTransfers(flag) {
       <div class="pay-top"><span class="pay-amt">${esc(money2(x.amount))}</span><span>${esc(dateLabel(x.date))}</span></div>
       <div class="pay-desc">${esc(x.description)}</div>
       <div class="pay-src">${pdfLink(x.source_file, x.source_page)}${refCopy(x.reference)}</div>
-    </div>`).join("");
-  openDrawer(head, `<div class="flag ${sev.cls}"><p>${esc(detail)}</p></div>
-    <h3>${esc(t("d.transfersTitle"))}: ${esc(count(flag.evidence.length, "transfer"))}${ar() ? "، " : ", "}${esc(money(total))}</h3>${rows}`);
+    </div>`);
+  openListDrawer(head, `<div class="flag ${sev.cls}"><p>${esc(detail)}</p></div>
+    <h3>${esc(t("d.transfersTitle"))}: ${esc(count(flag.evidence.length, "transfer"))}${ar() ? "، " : ", "}${esc(money(total))}</h3>`, rows);
+}
+
+// Long evidence lists are shown in pages so the drawer stays fast and readable; the heading always carries the full count.
+const DRAWER_PAGE = 20;
+let drawerList = { rows: [], page: 0 };
+function openListDrawer(head, intro, rows) {
+  drawerList = { rows, page: 0 };
+  openDrawer(head, `${intro}<div id="drawerList" class="drawer-list"></div><div class="pager drawer-pager" id="drawerPager"></div>`);
+  renderDrawerList();
+}
+function renderDrawerList() {
+  const { rows, page } = drawerList;
+  const pages = Math.ceil(rows.length / DRAWER_PAGE);
+  const a = page * DRAWER_PAGE, b = Math.min(rows.length, a + DRAWER_PAGE);
+  $("drawerList").innerHTML = rows.slice(a, b).join("");
+  $("drawerPager").hidden = pages <= 1;
+  $("drawerPager").innerHTML = pages <= 1 ? "" : `<span aria-live="polite">${esc(t("d.range", a + 1, b, rows.length))}</span><div>
+    <button class="btn" type="button" data-dpage="-1"${page === 0 ? " disabled" : ""}>${icon("caret-left", "flip")}<span>${esc(t("prev"))}</span></button>
+    <button class="btn" type="button" data-dpage="1"${page >= pages - 1 ? " disabled" : ""}><span>${esc(t("next"))}</span>${icon("caret-right", "flip")}</button></div>`;
 }
 
 // ---------- sources: every figure is one click from its document ----------
@@ -988,16 +1042,10 @@ async function renderBuilt(r) {
     [!r.review_queue.length, t("q.review"), t("q.reviewSub"), nf0.format(r.review_queue.length)],
   ];
   $("checks").innerHTML = checks.map(([ok, label, sub, v]) => `<li class="check ${ok ? "ok" : "attn"}">${icon(ok ? "check-circle" : "warning")}<div><b>${esc(label)}</b><small>${esc(sub)}</small></div><span class="v">${esc(v)}</span></li>`).join("");
-  // uncertain payer names, each with the statement page it came from
-  $("review").innerHTML = r.review_queue.length ? `<h3>${esc(t("q.reviewTitle"))}</h3>` + r.review_queue.map((x) => {
-    const tx = state.creditByRef.get(x.bank_ref) || {};
-    return `<div class="pay">
-      <div class="pay-top"><span class="pay-amt">${esc(money2(x.amount))}</span><span>${esc(dateLabel(x.date))}</span></div>
-      <div class="pay-desc">${esc(x.description)}</div>
-      <div class="pay-src">${tx.source_file ? pdfLink(tx.source_file, tx.source_page) : ""}${refCopy(x.bank_ref)}</div>
-      <div class="pay-meta"><span>${icon("user-focus")}${esc(t("q.reviewItem", x.suggested_customer || "-", pct(x.name_confidence || 0, 0)))}</span></div>
-    </div>`;
-  }).join("") : "";
+  // what would go to Qawafel ops (US-05); the items open in the paginated drawer
+  const rq = r.review_queue.length;
+  $("review").innerHTML = rq ? `<div class="review-box">${icon("user-focus")}<div><p>${esc(t("q.reviewWhy", rq))}</p>
+    <button class="link" type="button" id="openReview">${esc(t("q.reviewOpen", rq))}</button></div></div>` : "";
 
   const byMethod = {};
   for (const a of r.allocations) byMethod[a.method] = (byMethod[a.method] || 0) + a.amount_sar;
@@ -1065,6 +1113,14 @@ function wire() {
     if (fb) return runFlagAction(+fb.dataset.flag, fb.dataset.kind);
     const tr = e.target.closest("#invTable tr.clickable");
     if (tr) return openInvoice(tr.dataset.no);
+    const dp = e.target.closest("[data-dpage]");
+    if (dp) {
+      drawerList.page += +dp.dataset.dpage;
+      renderDrawerList();
+      $("drawerList").scrollIntoView({ block: "start", behavior: reduceMotion() ? "auto" : "smooth" });
+      return $("drawerPager").querySelector(`[data-dpage="${dp.dataset.dpage}"]:not([disabled])`)?.focus();
+    }
+    if (e.target.closest("#openReview")) return openReview();
     const cp = e.target.closest("button.copy");
     if (cp) return copyRef(cp);
     const tipb = e.target.closest(".tipbtn");

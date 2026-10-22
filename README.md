@@ -8,11 +8,11 @@ Turns a wholesaler's 12 months of invoices (Excel) and bank statements (PDF) int
 
 A credit analyst opens one applicant and can answer three questions:
 
-1. **Is the revenue real?** Every invoice is reconciled against bank deposits. The headline shows the share of due invoices confirmed by the bank, month by month.
+1. **Is the revenue real?** Every invoice is reconciled against bank deposits. The headline shows the share of invoices more than 30 days past their due date that the bank confirms, overall and month by month.
 2. **Is it stable?** Monthly sales, seasonality, payment speed, cash balances and existing debt.
 3. **What should I investigate?** Ranked flags (related parties, customers who stopped paying, concentration, entity mismatches, duplicates), each linked to the invoices or bank transfers behind it.
 
-Click any invoice to see its source row and the exact bank transactions that paid it, with the PDF file and page. A briefing memo is written by Claude from the verified figures. It lists evidence and questions but never recommends a decision, because the bank decides.
+Click any invoice to see its source row (as it appears in the Excel) and the exact bank transactions that paid it; each transaction links to its statement PDF, opened at the right page, with a copyable bank reference. Evidence lists are complete and paginated. A briefing memo is written by Claude from the verified figures. It lists evidence and questions but never recommends a decision, because the bank decides.
 
 You can also upload your own files (same layout as the samples) with **Analyze your own files**.
 
@@ -21,10 +21,12 @@ You can also upload your own files (same layout as the samples) with **Analyze y
 ```bash
 pip install -r requirements-dev.txt
 uvicorn main:app --reload        # open http://127.0.0.1:8000
-pytest -q                        # 8 tests, including matching accuracy
+pytest -q                        # 16 tests, including matching accuracy and the memo paths
 ```
 
-Optional: `export ANTHROPIC_API_KEY=...` to enable the AI memo (otherwise a template memo is shown). `CLAUDE_MODEL` overrides the model (default `claude-sonnet-5-5`).
+Optional: `export ANTHROPIC_API_KEY=...` to enable the AI memo. `CLAUDE_MODEL` overrides the model (default `claude-sonnet-5-5`, low effort, up to 2,000 output tokens).
+
+**Memo fallback.** The memo never blocks the page. If there is no key, the API call fails, or Claude returns no text, the page shows a template memo built from the same figures, and the response's `note` says why (the exception, or the `stop_reason`); the reason is also printed to the server logs (Vercel function logs). Only successful Claude memos are cached, so a failed attempt is retried on the next request.
 
 Regenerate the sample data: `python scripts/generate_data.py && python scripts/extract_statements.py`, then `python scripts/evaluate_matching.py`.
 
@@ -71,12 +73,12 @@ PDFs  ──► extractor: parse tables, verify every row against the running ba
 | Method | Endpoint | Purpose |
 |---|---|---|
 | GET | `/api/applications/demo/package` | Decision summary: metrics, flags, customers, aging |
-| GET | `/api/applications/demo/invoices?status=&min_amount=&customer_id=` | Filter invoices behind a metric |
+| GET | `/api/applications/demo/invoices?status=&min_amount=&customer_id=` | Filter invoices behind a metric (`status`: `matched`, `partial`, `unmatched`, `not_yet_due`, `excluded_entity`) |
 | GET | `/api/applications/demo/invoices/{number}/evidence` | Source row and the payments that settled it |
 | GET | `/api/applications/demo/report` | Everything the page needs in one response |
 | POST | `/api/analyze` | Analyze uploaded files (multipart: `invoices`, `statements[]`, optional `customers`, `organization`) |
 | POST | `/api/memo` | AI briefing memo from a package |
-| GET | `/api/sample-data`, `/api/sample-data/{path}` | List and download the sample files |
+| GET | `/api/sample-data`, `/api/sample-data/{path}?inline=1` | List and download the sample files; `inline=1` opens a PDF in the browser |
 
 Interactive docs at `/docs`. Task 2 diagrams (data model, process flow, status) are listed in [`docs/README.md`](docs/README.md), as Mermaid source and PNG. Errors share one format: `{"error": {"code", "message", "details"}}`.
 
@@ -85,6 +87,7 @@ Interactive docs at `/docs`. Task 2 diagrams (data model, process flow, status) 
 - Statement parsing supports the two sample bank layouts only. Production needs a parser per bank, or Open Banking data instead of PDFs (see Task 5).
 - Related-party checks use simulated registry fields. Production would query the commercial registry.
 - Single applicant, no authentication or persistence: this is a review prototype, not the full system in the spec.
+- The human review queue (oldest-first allocations and uncertain payer names, US-05) is computed and listed, but there is no ops screen to confirm or correct items.
 
 ## AI tools used
 

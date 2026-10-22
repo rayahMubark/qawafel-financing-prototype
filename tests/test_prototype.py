@@ -3,6 +3,7 @@ import io
 import os
 from collections import defaultdict
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -56,6 +57,28 @@ def test_planted_issues_are_detected(report):
     assert not report["data_quality"]["invoice_months_missing"]
 
 
+def test_review_queue_holds_oldest_first_allocations(report):
+    fifo = [a for a in report["allocations"] if a["method"] == "fifo"]
+    queued = [x for x in report["review_queue"] if x["reason"] == "oldest_first"]
+    assert fifo and len(queued) == len(fifo)
+    assert {(x["invoice_number"], x["bank_ref"]) for x in queued} == {(a["invoice_number"], a["bank_ref"]) for a in fifo}
+
+
+def test_evidence_lists_are_complete(report):
+    rp = next(f for f in report["flags"] if f["type"] == "related_party")
+    rows = list(csv.DictReader(open(DATA / "extracted" / "bank_transactions.csv", encoding="utf-8")))
+    back = [r for r in rows if "WADI RETAIL" in r["description"] and float(r["debit"] or 0) > 0]
+    assert len(rp["evidence"]) == len(back) > 40
+
+
+def test_invoice_list_counts_match_metrics(report):
+    listed = defaultdict(int)
+    for i in report["invoices"]:
+        listed[i["status"]] += 1
+    assert listed.pop("excluded_entity") == report["data_quality"]["entity_mismatch"] == 3
+    assert dict(listed) == report["metrics"]["invoice_status"]
+
+
 def test_api_package_and_drilldown():
     assert client.get("/api/health").json()["status"] == "ok"
     pkg = client.get("/api/applications/demo/package").json()
@@ -97,6 +120,41 @@ def test_flags_carry_params_for_client_wording(report):
     assert flags["duplicates"]["params"]["count"] == 3
     sp = flags["stopped_paying"]["params"]
     assert sp["count"] == len(flags["stopped_paying"]["evidence"]) and sp["amount"] > 0
+
+
+class _FakeClaude:
+    """Stands in for anthropic.Anthropic: client.beta.messages.create returns a canned message."""
+
+    def __init__(self, blocks, stop_reason):
+        msg = SimpleNamespace(content=blocks, stop_reason=stop_reason, model="claude-sonnet-5-5")
+        self.beta = SimpleNamespace(messages=SimpleNamespace(create=lambda **kw: msg))
+
+
+def test_memo_uses_claude_text_and_caches_it(monkeypatch):
+    import engine.memo as memo
+    memo._cache.clear()
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    blocks = [SimpleNamespace(type="thinking", thinking=""), SimpleNamespace(type="text", text="## Snapshot\nPart one."),
+              SimpleNamespace(type="text", text="More.")]
+    monkeypatch.setattr(memo, "_client", lambda key: _FakeClaude(blocks, "end_turn"))
+    pkg = client.get("/api/applications/demo/package").json()
+    out = client.post("/api/memo", json=pkg).json()
+    assert out["source"] == "claude" and out["note"] is None
+    assert "Part one." in out["memo_markdown"] and "More." in out["memo_markdown"]
+    assert len(memo._cache) == 1
+    memo._cache.clear()
+
+
+def test_memo_without_text_reports_stop_reason_and_is_not_cached(monkeypatch, capsys):
+    import engine.memo as memo
+    memo._cache.clear()
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    monkeypatch.setattr(memo, "_client", lambda key: _FakeClaude([SimpleNamespace(type="thinking", thinking="")], "max_tokens"))
+    pkg = client.get("/api/applications/demo/package").json()
+    out = client.post("/api/memo", json=pkg).json()
+    assert out["source"] == "template" and "stop_reason=max_tokens" in out["note"]
+    assert not memo._cache
+    assert "stop_reason=max_tokens" in capsys.readouterr().out
 
 
 def test_memo_language():

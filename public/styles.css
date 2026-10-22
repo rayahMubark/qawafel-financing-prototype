@@ -270,6 +270,7 @@ html[lang="ar"] .chart .axis text { font-family: var(--font-ar); }
 .chart .col:focus { outline: none; }
 .chart .col:focus .hit { stroke: var(--blue-700); stroke-width: 2; }
 #ledgerTable { margin-top: var(--s4); }
+.chart-note { margin-top: var(--s2); font-size: .85rem; }
 
 /* ---------- flags ---------- */
 .sev-group + .sev-group { margin-top: var(--s4); }
@@ -321,6 +322,7 @@ table.data { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .status.matched { color: var(--good); }
 .status.partial, .status.unmatched { color: var(--warn); }
 .status.not_yet_due { color: var(--blue-900); }
+.status.excluded_entity { color: var(--muted); }
 
 /* ---------- filters & pager ---------- */
 .filters { display: flex; gap: var(--s4); flex-wrap: wrap; align-items: flex-end; margin-bottom: var(--s4); }
@@ -344,6 +346,7 @@ table.data { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .stat.notdue { border-inline-start-color: var(--c-notdue); }
 .stat strong { display: block; font-size: 1.35rem; color: var(--blue-950); }
 .stat span { color: var(--muted); font-size: .85rem; }
+.rev-all { margin-top: var(--s4); padding-top: var(--s3); border-top: 1px solid var(--line); }
 .aging { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--s3); }
 .age { background: var(--tint); border-radius: var(--r-control); padding: var(--s3); display: grid; gap: 2px; border-top: 3px solid var(--line-strong); }
 .age.b0 { border-top-color: var(--c-notdue); }
@@ -380,7 +383,10 @@ table.data { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .files a { display: inline-flex; gap: 6px; align-items: center; }
 .files .size { color: var(--muted); margin: 0 6px; }
 .statements-list { grid-column: 1 / -1; line-height: 2; }
-#review:not(:empty) { margin-top: var(--s5); }
+#review:not(:empty) { margin-top: var(--s4); }
+.review-box { display: flex; gap: var(--s3); align-items: flex-start; background: var(--tint); border-radius: var(--r-control); padding: var(--s3) var(--s4); font-size: .9rem; }
+.review-box > .ph { font-size: 1.4rem; color: var(--blue-700); margin-top: 2px; }
+.review-box .link { margin-top: var(--s2); }
 
 .disclaimer { color: var(--text); /* sits on the page background, where muted would drop below 4.5:1 */ font-size: .85rem; padding: var(--s4) 0 var(--s7); border-top: 1px solid var(--line-strong); display: flex; gap: var(--s2); align-items: flex-start; }
 
@@ -430,6 +436,8 @@ table.data { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .paid-sum .bar i { display: block; height: 100%; background: var(--c-confirmed); }
 .pay { background: rgb(255 255 255 / .8); border: 1px solid var(--line); border-radius: var(--r-control); padding: var(--s3) var(--s4); display: grid; gap: var(--s2); }
 .pay + .pay { margin-top: var(--s3); }
+.drawer-list { scroll-margin-top: 120px; }
+.drawer-pager { margin-top: 0; }
 .pay-top { display: flex; justify-content: space-between; gap: var(--s3); align-items: baseline; flex-wrap: wrap; }
 .pay-amt { font-size: 1.2rem; font-weight: 700; color: var(--blue-950); }
 .pay-desc { font-size: .85rem; color: var(--text); background: var(--tint); padding: 4px 8px; border-radius: 6px; direction: ltr; text-align: left; font-family: var(--font); overflow-wrap: anywhere; }
