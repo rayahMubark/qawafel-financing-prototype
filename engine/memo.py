@@ -149,17 +149,16 @@ def generate_memo(report_or_ctx: dict, lang: str = "en") -> dict:
         return result
     try:
         # Thinking counts against max_tokens: low effort keeps it short so the memo text always fits.
-        # fallbacks="default": if a safety classifier declines, the API retries on a suitable model.
-        msg = _client(api_key).beta.messages.create(
+        # One model, no fallback, so "Written by Claude (model)" always names the model that wrote it.
+        msg = _client(api_key).messages.create(
             model=model, max_tokens=2000, output_config={"effort": "low"},
-            betas=["server-side-fallback-2026-07-01"], fallbacks="default",
             system=SYSTEM_PROMPT + (ARABIC_INSTRUCTION if ar else ""),
             messages=[{"role": "user", "content": "Package JSON:\n" + json.dumps(ctx, ensure_ascii=False, default=str)}],
         )
         text = "\n".join(b.text for b in msg.content if getattr(b, "type", "") == "text" and b.text).strip()
         if text:
-            result = {"source": "claude", "model": getattr(msg, "model", None) or model, "memo_markdown": text, "note": None}
-            _cache[key] = result  # only successful Claude memos are cached; a fallback is retried next time
+            result = {"source": "claude", "model": model, "memo_markdown": text, "note": None}
+            _cache[key] = result  # only successful Claude memos are cached; a template result is retried next time
             return result
         result["note"] = f"AI memo returned no text (stop_reason={msg.stop_reason}); showing the template memo."
     except Exception as e:  # never fail the page because the model is unavailable

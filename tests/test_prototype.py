@@ -123,11 +123,11 @@ def test_flags_carry_params_for_client_wording(report):
 
 
 class _FakeClaude:
-    """Stands in for anthropic.Anthropic: client.beta.messages.create returns a canned message."""
+    """Stands in for anthropic.Anthropic: client.messages.create returns a canned message."""
 
     def __init__(self, blocks, stop_reason):
         msg = SimpleNamespace(content=blocks, stop_reason=stop_reason, model="claude-sonnet-5-5")
-        self.beta = SimpleNamespace(messages=SimpleNamespace(create=lambda **kw: msg))
+        self.messages = SimpleNamespace(create=lambda **kw: msg)
 
 
 def test_memo_uses_claude_text_and_caches_it(monkeypatch):
